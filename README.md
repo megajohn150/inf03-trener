@@ -1,6 +1,39 @@
+<div align="center">
+
 # Trener INF.03
 
-Lokalna strona do nauki do egzaminu zawodowego **INF.03** (tworzenie i administrowanie stronami, aplikacjami internetowymi i bazami danych). Obejmuje teorię i praktykę. Działa offline na Macu z XAMPP, bez kont i chmury. Sama aplikacja nie korzysta z AI.
+### Lokalna strona do nauki do egzaminu zawodowego INF.03, z teorią i praktyką sprawdzaną automatycznie
+
+<p>
+  <img src="https://img.shields.io/badge/PHP-8.2-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.2">
+  <img src="https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white" alt="MariaDB">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
+  <img src="https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css&logoColor=white" alt="CSS">
+</p>
+<p>
+  <img src="https://img.shields.io/badge/XAMPP-FB7A24?style=for-the-badge&logo=xampp&logoColor=white" alt="XAMPP">
+  <img src="https://img.shields.io/badge/platforma-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Platforma: macOS">
+  <img src="https://img.shields.io/badge/dzia%C5%82a-offline-555555?style=for-the-badge" alt="Działa offline">
+  <img src="https://img.shields.io/badge/framework-brak-555555?style=for-the-badge" alt="Bez frameworka">
+</p>
+
+> Napisz zapytanie. Uruchom. Zobacz, czy wynik zgadza się ze wzorem.
+
+<img src="zrzuty/start.png" alt="Strona startowa trenera INF.03" width="820">
+
+</div>
+
+---
+
+## O projekcie
+
+Lokalna strona do nauki do egzaminu zawodowego **INF.03** (tworzenie i administrowanie
+stronami, aplikacjami internetowymi i bazami danych). Obejmuje teorię i praktykę. Działa
+offline na Macu z XAMPP, bez kont i chmury. Sama aplikacja nie korzysta z AI.
+
+Zadania nie są sprawdzane po tekście. Twoje zapytanie SQL i Twój skrypt PHP naprawdę się
+wykonują, a wynik jest porównywany z wynikiem wzorcowego rozwiązania.
 
 ## Co jest w środku
 
@@ -14,6 +47,19 @@ Lokalna strona do nauki do egzaminu zawodowego **INF.03** (tworzenie i administr
 | **Powtórka** | wraca do zrobionych zadań, zaczynając od tych, które nie wyszły |
 
 Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamięci przeglądarki.
+
+<table>
+  <tr>
+    <td width="33%"><img src="zrzuty/sql.png" alt="Lekcja i zadania SQL"></td>
+    <td width="33%"><img src="zrzuty/abcd.png" alt="Pytanie z teorii ABCD"></td>
+    <td width="33%"><img src="zrzuty/arkusz.png" alt="Arkusz próbny Wypożyczalnia rowerów"></td>
+  </tr>
+  <tr>
+    <td align="center">Lekcja i zadania SQL</td>
+    <td align="center">Teoria ABCD</td>
+    <td align="center">Arkusz próbny</td>
+  </tr>
+</table>
 
 ## Jak sprawdzane są zadania
 
@@ -45,6 +91,8 @@ Rozwiązania arkuszy próbnych zapisuj w `praca/probny1/` i `praca/probny2/`.
 
 ## Testy
 
+<img src="https://img.shields.io/badge/sprawdze%C5%84-394-5FA04E?style=flat-square" alt="Sprawdzeń: 394"> <img src="https://img.shields.io/badge/b%C5%82%C4%99d%C3%B3w-0-555555?style=flat-square" alt="Błędów: 0">
+
 ```bash
 ./testy/test.sh
 ```
@@ -70,9 +118,12 @@ sql/                instalacja bazy ćwiczeń i dane sklepu do zadań
 arkusze/<id>/       baza arkusza, pliki startowe i wzorcowe rozwiązanie (wzor/)
 praca/<id>/         tu zapisujesz swoje rozwiązania arkuszy (nie trafiają do repo)
 testy/              testy treści i sprawdzarek (test.sh, test.php, test.html)
+zrzuty/             zrzuty ekranu do tego pliku
 ```
 
 ## Bezpieczeństwo
+
+<img src="https://img.shields.io/badge/serwer-tylko_127.0.0.1-555555?style=flat-square" alt="Serwer tylko na 127.0.0.1">
 
 Aplikacja uruchamia wpisany przez Ciebie kod PHP, dlatego:
 
@@ -93,7 +144,10 @@ Hasło użytkownika ćwiczeń w `sql/instalacja.sql` jest celowo proste: konto d
 
 ## Pomysły na przyszłość
 
-### Lokalne AI sprawdzające prawdziwe arkusze
+<details>
+<summary><b>Lokalne AI sprawdzające prawdziwe arkusze</b></summary>
+
+<br>
 
 Arkusze próbne sprawdzają się same, ale **prawdziwe sesje CKE trzeba oceniać ręcznie** według zasad oceniania. To długie, nudne i łatwo przy tym ocenić się zbyt łagodnie. Pomysł: lokalny model AI ocenia rozwiązanie kryterium po kryterium.
 
@@ -121,3 +175,5 @@ Arkusze próbne sprawdzają się same, ale **prawdziwe sesje CKE trzeba oceniać
 - Model wybrać pod RAM Maca: model kodu około 7–14B parametrów plus osobny mały model z obsługą obrazów do zrzutów. Przed instalacją sprawdzić, co jest aktualnie dostępne w Ollama.
 - Pobranie arkuszy i zasad z arkusze.pl oraz modelu to jedyne kroki wymagające internetu. Potem całość ma działać offline, jak reszta aplikacji.
 - Wywołanie modelu musi zostać za tymi samymi zabezpieczeniami co reszta `api.php` (Host, `X-INF03`), a Ollama tylko na `127.0.0.1`.
+
+</details>
