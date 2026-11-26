@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head><meta charset="UTF-8"><title>Testy zadań</title><link rel="stylesheet" href="../css/styl.css"></head>
+<body><main><h1>Testy zadań HTML, CSS i JS</h1><p id="stan">Trwa…</p><pre id="log"></pre><div id="miejsce"></div></main>
+<script src="../dane/sql.js"></script><script src="../dane/php.js"></script><script src="../dane/www.js"></script><script src="../js/zadania.js"></script>
+<script>
+// Każdy wzór musi przejść, a typowy błąd odpaść. Otwórz przez start.command: http://127.0.0.1:8003/testy/test.html
+(async () => {
+  const log = document.getElementById('log'), m = document.getElementById('miejsce');
+  let n = 0, zle = 0;
+  for (const k of KURSY.filter(k => ['html', 'css', 'js'].includes(k.id)))
+    for (const t of k.tematy) for (const z of t.zadania) for (const [kod, ma] of [[z.wzor, true], [z.zle, false]]) {
+      n++; m.innerHTML = '';
+      const o = await sprawdzZadanie(k.id, z, kod, m);
+      if (o.ok !== ma) { zle++; log.textContent += `BŁĄD ${z.id} (${ma ? 'wzór' : 'zły'}): ${o.powod || 'przeszło'}\n`; }
+    }
+  document.getElementById('stan').textContent = `Sprawdzeń: ${n}, błędów: ${zle}`;
+  document.title = zle ? 'BŁĘDY' : 'OK';
+})();
+</script></body></html>

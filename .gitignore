@@ -1,0 +1,9 @@
+.DS_Store
+# Osobisty postęp nauki; usuń te linie, jeśli chcesz go trzymać w repo jako kopię.
+dane/postep.json
+dane/postep.json.tmp
+# Lokalne ustawienia Claude Code.
+.claude/
+# Twoje rozwiązania arkuszy; w repo zostaje tylko instrukcja czytaj.txt.
+praca/*/*
+!praca/*/czytaj.txt

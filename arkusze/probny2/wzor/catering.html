@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Catering Smakosz</title>
+  <link rel="stylesheet" href="styl.css">
+</head>
+<body>
+  <header><img src="talerz.png" alt="Talerz"><h1>Catering Smakosz</h1></header>
+  <div class="uklad">
+    <section id="kalkulator">
+      <h2>Zamów obiad</h2>
+      <label for="danie">Danie:</label>
+      <select id="danie"><option value="9">Zupa pomidorowa</option><option value="24">Kotlet schabowy</option><option value="12">Sernik</option></select><br>
+      <label for="porcje">Liczba porcji:</label> <input type="number" id="porcje"><br>
+      <label><input type="checkbox" id="dostawa"> Dostawa (+15 zł)</label><br>
+      <button onclick="oblicz()">Oblicz</button>
+      <p id="wynik"></p>
+    </section>
+    <aside id="oferta">
+      <h2>Nasza oferta</h2>
+      <table>
+        <tr><th>Danie</th><th>Cena</th></tr>
+        <tr><td>Zupa pomidorowa</td><td>9 zł</td></tr>
+        <tr><td>Kotlet schabowy</td><td>24 zł</td></tr>
+        <tr><td>Sernik</td><td>12 zł</td></tr>
+      </table>
+    </aside>
+  </div>
+  <footer><p>Stronę wykonał: 00000000000</p></footer>
+  <script>
+    function oblicz() {
+      const cena = Number(document.getElementById('danie').value);
+      const porcje = Number(document.getElementById('porcje').value);
+      const wynik = document.getElementById('wynik');
+      if (porcje < 1) { wynik.innerHTML = 'Podaj liczbę porcji'; return; }
+      let koszt = cena * porcje;
+      if (porcje >= 10) koszt = koszt * 0.9;
+      if (document.getElementById('dostawa').checked) koszt = koszt + 15;
+      wynik.innerHTML = 'Do zapłaty: ' + koszt + ' zł';
+    }
+  </script>
+</body>
+</html>

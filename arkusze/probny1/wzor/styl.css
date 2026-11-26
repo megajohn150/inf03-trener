@@ -1,0 +1,12 @@
+* { font-family: Verdana; box-sizing: border-box; }
+header, footer { background-color: SteelBlue; color: white; text-align: center; padding: 10px; }
+.uklad { display: flex; }
+#lewa, #prawa { background-color: LightCyan; width: 25%; min-height: 500px; }
+#srodek { background-color: WhiteSmoke; width: 50%; min-height: 500px; }
+li { padding: 5px; }
+.cena { background-color: Gold; border-radius: 10px; padding: 3px; }
+.rower { display: inline-block; width: 30%; text-align: center; padding: 3px; }
+@media (max-width: 800px) {
+  .uklad { display: block; }
+  #lewa, #srodek, #prawa { width: 100%; }
+}

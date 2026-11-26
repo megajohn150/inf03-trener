@@ -1,0 +1,4 @@
+SELECT nazwa, cena FROM dania WHERE typ = 'deser';
+SELECT typ, COUNT(*) FROM dania GROUP BY typ;
+SELECT nazwa, kalorie FROM dania WHERE kalorie < 400 ORDER BY kalorie;
+ALTER TABLE dania ADD wege BOOLEAN;

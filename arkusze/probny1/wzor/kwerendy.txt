@@ -1,0 +1,4 @@
+SELECT nazwa, typ, cena FROM rowery WHERE typ = 'miejski';
+SELECT nazwa, cena FROM rowery ORDER BY cena DESC LIMIT 3;
+SELECT rowery.nazwa, wypozyczenia.data_wyp, wypozyczenia.dni FROM wypozyczenia JOIN rowery ON wypozyczenia.rower_id = rowery.id WHERE wypozyczenia.dni > 3;
+UPDATE rowery SET cena = cena + 5 WHERE typ = 'górski';

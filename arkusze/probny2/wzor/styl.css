@@ -1,0 +1,13 @@
+* { font-family: Tahoma; }
+header, footer { background-color: Sienna; color: white; padding: 10px; }
+.uklad { display: flex; }
+#kalkulator { background-color: OldLace; width: 60%; padding: 10px; }
+#oferta { background-color: Wheat; width: 40%; padding: 10px; }
+table { border-collapse: collapse; }
+td, th { border: 1px solid Sienna; padding: 5px; }
+button { background-color: Sienna; color: white; border-radius: 5px; }
+#wynik { font-size: 24px; }
+@media (max-width: 700px) {
+  .uklad { display: block; }
+  #kalkulator, #oferta { width: 100%; }
+}
