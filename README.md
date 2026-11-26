@@ -105,7 +105,7 @@ Testy HTML, CSS i JS uruchamiają się w przeglądarce pod adresem http://127.0.
 
 ```
 index.html          strona (punkt wejścia)
-favicon.png         ikona strony (apple-touch-icon.png: ikona na ekran iPhone'a)
+favicon.png         ikona strony
 start.command       uruchomienie serwera dwuklikiem
 api.php             serwer: postęp, pliki arkuszy, wywołania sprawdzarki
 sprawdz.php         sprawdzanie SQL i PHP (piaskownica)
