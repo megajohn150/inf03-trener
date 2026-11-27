@@ -97,6 +97,7 @@ function start() {
   // Ostatnie 4 tygodnie liczone w dniach.
   const dni = Math.max(0, Math.ceil((new Date(P.egzData + 'T00:00') - Date.now()) / 864e5));
   const [ile, jedn] = dni < 28 ? [dni, dni === 1 ? 'dzień' : 'dni'] : [Math.ceil(dni / 7), 'tyg.'];
+  const dataEgz = new Date(P.egzData + 'T00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
   const n = nastepne();
   const nieudane = Object.keys(P.sql).filter(id => P.sql[id] === 0 && ZADANIE[id]).map(id => ZADANIE[id]);
   const zleQ = ABCD.filter(q => P.abcd[q.id] && !P.abcd[q.id].ok).length;
@@ -121,8 +122,8 @@ function start() {
       <p class="upnext">Następna porcja: <strong>${esc(n.label)}</strong></p>
     </div>
     <aside class="today__side" aria-label="Twój stan">
-      <p class="countdown">do egzaminu: <span class="ring"><strong>${ile}</strong><svg aria-hidden="true"><use href="#i-ring"/></svg></span> ${jedn}</p>
-      <label class="countdown__data">Data egzaminu <input type="date" id="egzData" value="${esc(P.egzData)}"></label>
+      <p class="countdown">do egzaminu: <button class="ring ring--btn" data-act="data-egz" title="Egzamin: ${esc(dataEgz)}. Kliknij, żeby zmienić datę." aria-label="${ile} ${jedn} do egzaminu (${esc(dataEgz)}). Zmień datę egzaminu"><strong>${ile}</strong><svg aria-hidden="true"><use href="#i-ring"/></svg></button> ${jedn}</p>
+      <label class="countdown__data" hidden>Data egzaminu <input type="date" id="egzData" value="${esc(P.egzData)}"></label>
       <div class="notes">${kartki.join('') || '<div class="note">Tu przyklejają się Twoje błędy. Wracają jako pierwsze.</div>'}</div>
     </aside>
   </section>
@@ -692,6 +693,14 @@ app.addEventListener('click', e => {
   else if (akcja === 'pod' || akcja === 'odp') pomoc(art, akcja);
   else if (akcja === 'uruchom') uruchomSql(b.closest('.dbview'));
   else if (akcja === 'grafika') sprawdzGrafike();
+  else if (akcja === 'data-egz') {
+    // Pole daty pojawia się dopiero po kliknięciu liczby; po wyborze daty strona startowa rysuje się od nowa i znów je chowa.
+    const pole = app.querySelector('.countdown__data');
+    pole.hidden = false;
+    const wybor = pole.querySelector('input');
+    wybor.focus();
+    try { wybor.showPicker(); } catch {}
+  }
   else if (akcja === 'eksport') eksportuj();
   else if (akcja === 'import') app.querySelector('#importPlik').click();
   else if (akcja === 'reset-postep') resetuj();
