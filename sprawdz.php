@@ -36,16 +36,42 @@ function wykonaj(string $seed, string $sql, ?string $sprawdz): array
     return $wynik + ['zmienione' => $zmienione];
 }
 
+/** Najczęstsze błędy MySQL po polsku; resztę zostawia w oryginale. */
+function bladSql(mysqli_sql_exception $e): string
+{
+    $m = $e->getMessage();
+    $q = preg_match("/'([^']*)'/", $m, $t) ? $t[1] : '';
+    return match ($e->getCode()) {
+        1064 => preg_match("/near '(.*)' at line \d+/s", $m, $n)
+            ? ($n[1] === '' ? 'Błąd składni SQL: zapytanie urywa się na końcu.' : 'Błąd składni SQL w okolicy: ' . mb_strimwidth($n[1], 0, 60, '…'))
+            : 'Błąd składni SQL.',
+        1054 => "Nie ma kolumny $q. Sprawdź nazwę kolumny i tabelę.",
+        1146 => 'Nie ma tabeli ' . preg_replace('/^.*\./', '', $q) . '.',
+        1052 => "Kolumna $q jest w kilku tabelach. Dopisz tabelę, np. k.$q.",
+        1111 => 'Funkcji agregującej (COUNT, SUM, AVG…) nie użyjesz w WHERE. Warunek na grupę to HAVING.',
+        1136 => 'Liczba wartości nie zgadza się z liczbą kolumn.',
+        1062 => "Wartość $q już jest w kolumnie, która musi być unikalna.",
+        1451, 1452 => 'Klucz obcy na to nie pozwala: rekord jest powiązany z inną tabelą.',
+        1242 => 'Podzapytanie zwraca kilka wierszy, a tu potrzebna jest jedna wartość. Użyj IN.',
+        1222 => 'Zapytania połączone przez UNION muszą mieć tyle samo kolumn.',
+        1050 => "Tabela $q już istnieje.",
+        1060 => "Kolumna $q już istnieje.",
+        1091 => "Nie można usunąć $q, bo nie istnieje.",
+        default => 'Błąd SQL: ' . $m,
+    };
+}
+
 function ocen(string $seed, array $z): array
 {
     $sprawdz = $z['sprawdz'] ?? null;
     $wzor = wykonaj($seed, $z['wzor'], $sprawdz);
+    $ocz = ['oczekiwane' => ['kolumny' => $wzor['kolumny'], 'wiersze' => array_slice($wzor['wiersze'], 0, 50)]];
     try {
         $moje = wykonaj($seed, $z['sql'], $sprawdz);
     } catch (mysqli_sql_exception $e) {
-        return ['ok' => false, 'powod' => 'Błąd SQL: ' . $e->getMessage()];
+        return ['ok' => false, 'powod' => bladSql($e)] + $ocz;
     }
-    $odp = ['ok' => false, 'kolumny' => $moje['kolumny'], 'wiersze' => array_slice($moje['wiersze'], 0, 50)];
+    $odp = ['ok' => false, 'kolumny' => $moje['kolumny'], 'wiersze' => array_slice($moje['wiersze'], 0, 50)] + $ocz;
     if ($moje['kolumny'] === null) return $odp + ['powod' => 'To polecenie nie zwraca wyników, a zadanie wymaga SELECT.'];
     if (count($moje['kolumny']) !== count($wzor['kolumny']))
         return $odp + ['powod' => 'Kolumn: ' . count($moje['kolumny']) . ', a powinno być ' . count($wzor['kolumny']) . '.'];

@@ -11,7 +11,7 @@ const TONE = { sql: 'var(--t-blue)', php: 'var(--t-pink)', html: 'var(--t-yellow
 const tematow = n => n === 1 ? 'temat' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'tematy' : 'tematów';
 
 // ---- postęp: plik na dysku, a localStorage jako zapas (Safari potrafi je wyczyścić) ----
-let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {} };
+let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {} };
 async function wczytaj() {
   let lokalny = null, plik = null;
   try { lokalny = JSON.parse(localStorage.getItem('inf03')); } catch {}
@@ -52,6 +52,8 @@ function idzDalej() { const { href } = nastepne(); if (location.hash === href) t
 const pasek = (a, b) => `<span class="bar" aria-hidden="true"><i style="--p:${procent(a, b)}%"></i></span>`;
 const wstecz = (href, label) => `<a class="back" href="${href}">${icon('back')}${esc(label)}</a>`;
 const kod = s => `<pre><code>${esc(s)}</code></pre>`;
+const tabela = (kolumny, wiersze) => `<div class="rtable"><table><thead><tr>${kolumny.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${wiersze.map(w => `<tr>${w.map(v => v === null ? '<td class="null">NULL</td>' : `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const bladTekst = err => err instanceof TypeError || err instanceof SyntaxError ? BLAD_POL : err.message;
 let zegary = [];
 const co = (fn, ms) => { fn(); zegary.push(setInterval(fn, ms)); };
 const stopZegary = () => { zegary.forEach(clearInterval); zegary = []; };
@@ -133,10 +135,17 @@ produkty  (id, nazwa, kategoria, cena, ilosc)
 zamowienia(id, klient_id → klienci.id, data_zam, status)
 pozycje   (id, zamowienie_id → zamowienia.id, produkt_id → produkty.id, sztuk)`;
 
+// „Z podglądem”: rozwiązanie było odkryte; znika po zaliczeniu bez odkrywania, a do tego czasu zadanie wraca w powtórce.
+const ODZNAKA = '<span class="badge" title="Rozwiązanie było podejrzane. Zrób to zadanie jeszcze raz samodzielnie.">z podglądem</span>';
+function odznacz(art) {
+  const head = art.querySelector('.task__head');
+  head.querySelector('.badge')?.remove();
+  if (P.podglad[art.dataset.id]) head.insertAdjacentHTML('beforeend', ODZNAKA);
+}
 function zadanieHtml({ z, k, n }, i) {
   return `
   <article class="task sheet taped" data-id="${z.id}" style="--tape:${TONE[k.id]}">
-    <div class="task__head"><h2 class="task__title">${esc(k.nazwa)} · zadanie ${n}</h2>${P.sql[z.id] === 1 ? `${icon('tick')}<span class="sr">zaliczone</span>` : ''}</div>
+    <div class="task__head"><h2 class="task__title">${esc(k.nazwa)} · zadanie ${n}</h2>${P.sql[z.id] === 1 ? `${icon('tick')}<span class="sr">zaliczone</span>` : ''}${P.podglad[z.id] ? ODZNAKA : ''}</div>
     <p class="task__prompt">${esc(z.t)}</p>
     ${z.html && k.id !== 'html' ? `<details class="folder"><summary>${icon('chev')}Kod HTML, na którym działasz</summary>${kod(z.html)}</details>` : ''}
     <label class="sr" for="ta-${i}-${z.id}">Twoje rozwiązanie</label>
@@ -162,19 +171,27 @@ function temat(kId, tId) {
   <div class="topic">
     <div>${wstecz(`#/kurs/${k.id}`, k.nazwa)}<h1 class="title" tabindex="-1">${esc(t.tytul)}</h1></div>
     <article class="sheet prose">${t.lekcja}</article>
-    ${['sql', 'php'].includes(k.id) ? `<details class="folder"><summary>${icon('chev')}Tabele, na których ćwiczysz</summary>${kod(TABELE)}</details>` : ''}
+    ${['sql', 'php'].includes(k.id) ? `<details class="folder"><summary>${icon('chev')}Tabele, na których ćwiczysz</summary>${kod(TABELE)}
+      <div class="folder__in dbview">
+        <div class="actions">${['klienci', 'produkty', 'zamowienia', 'pozycje'].map(t => `<button class="btn" data-act="tabela" data-t="${t}">Pokaż ${t}</button>`).join('')}</div>
+        <label class="label" for="konsola">Konsola bez oceniania. Każde uruchomienie startuje od świeżej bazy.</label>
+        <textarea class="konsola" id="konsola" rows="2" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" data-gramm="false"></textarea>
+        <div class="actions"><button class="btn btn--primary" data-act="uruchom">Uruchom</button><kbd class="shortcut">⌘ / Ctrl + Enter</kbd></div>
+        <div class="dbview__out" role="status" aria-live="polite"></div>
+      </div></details>` : ''}
     ${t.zadania.map((z, i) => zadanieHtml(ZADANIE[z.id], i)).join('')}
     <div>${nast ? `<a class="btn btn--primary" href="#/kurs/${k.id}/${nast.id}">Następny temat: ${esc(nast.tytul)}</a>` : '<button class="btn btn--primary" data-act="dalej">Dalej</button>'}</div>
   </div>`;
 }
 function powtorka() {
-  const pula = Object.keys(P.sql).filter(id => ZADANIE[id]);
-  // Najpierw niezaliczone, potem losowe zaliczone.
-  const lista = [...miesza(pula.filter(id => P.sql[id] !== 1)), ...miesza(pula.filter(id => P.sql[id] === 1))].slice(0, 5);
+  const pula = [...new Set([...Object.keys(P.sql), ...Object.keys(P.podglad)])].filter(id => ZADANIE[id]);
+  // Najpierw nieudane, potem z podglądem rozwiązania, potem losowe zaliczone.
+  const grupa = id => P.sql[id] === 0 ? 0 : P.podglad[id] ? 1 : 2;
+  const lista = [0, 1, 2].flatMap(g => miesza(pula.filter(id => grupa(id) === g))).slice(0, 5);
   app.innerHTML = lista.length ? `
   <div class="topic">
     <div class="pagehead"><h1 class="title" tabindex="-1">Powtórka</h1></div>
-    <p class="lead">Pięć zadań, które już robiłeś/aś: najpierw te nieudane, potem losowe zaliczone.</p>
+    <p class="lead">Pięć zadań, które już robiłeś/aś: najpierw te nieudane, potem te z podglądem rozwiązania, na końcu losowe zaliczone.</p>
     ${lista.map((id, i) => zadanieHtml(ZADANIE[id], i)).join('')}
     <div><button class="btn" data-act="inne">Inne zadania</button></div>
   </div>` : `
@@ -198,21 +215,38 @@ async function sprawdz(art) {
     else podglad.innerHTML = '';
     wynik.classList.add(o.ok ? 'is-ok' : 'is-bad');
     wynik.innerHTML = `${icon(o.ok ? 'tick' : 'cross')}<span>${o.ok ? 'Dobrze!' : esc(o.powod)}</span>`;
-    if (o.kolumny?.length) extra.innerHTML = `<div class="rtable"><table><thead><tr>${o.kolumny.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${o.wiersze.map(w => `<tr>${w.map(v => v === null ? '<td class="null">NULL</td>' : `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    const co = z.sprawdz ? 'stan bazy' : 'wynik';
+    if (o.kolumny?.length) extra.innerHTML = (o.ok ? '' : `<p class="label">Twój ${co}</p>`) + tabela(o.kolumny, o.wiersze);
+    if (!o.ok && o.oczekiwane?.kolumny) extra.innerHTML += `<details class="folder expect"><summary>${icon('chev')}Pokaż oczekiwany ${co}</summary><div class="folder__in">${tabela(o.oczekiwane.kolumny, o.oczekiwane.wiersze)}</div></details>`;
     if (o.wyjscie !== undefined && !o.ok) extra.innerHTML += `${o.dane ? `<p class="test-data">Dane testu: <code>${esc(o.dane)}</code></p>` : ''}<div class="cmp"><figure><figcaption class="label">Twój wynik</figcaption>${kod(o.wyjscie || '(pusto)')}</figure><figure><figcaption class="label">Oczekiwany</figcaption>${kod(o.oczekiwane || '(pusto)')}</figure></div>`;
     if (o.log?.length) extra.innerHTML += `<figure class="console"><figcaption class="label">Konsola (console.log)</figcaption>${kod(o.log.join('\n'))}</figure>`;
     if (o.ok && !art.querySelector('.task__head .ic')) art.querySelector('.task__head').insertAdjacentHTML('beforeend', `${icon('tick')}<span class="sr">zaliczone</span>`);
     if (P.sql[z.id] !== 1) P.sql[z.id] = o.ok ? 1 : 0; // raz zaliczone zostaje zaliczone
+    if (o.ok && !art.querySelector('[data-aid="odp"]')) delete P.podglad[z.id];
+    odznacz(art);
     P.ost = k.id; zapisz();
   } catch (err) {
     if (!ramkaBox.querySelector('iframe:not(.ukryta)')) podglad.innerHTML = '';
     wynik.classList.add('is-bad');
-    wynik.innerHTML = `${icon('cross')}<span>${esc(err instanceof TypeError || err instanceof SyntaxError ? BLAD_POL : err.message)}</span>`;
+    wynik.innerHTML = `${icon('cross')}<span>${esc(bladTekst(err))}</span>`;
+  }
+}
+async function uruchomSql(box) {
+  const out = box.querySelector('.dbview__out');
+  out.innerHTML = '<p class="label">Uruchamiam…</p>';
+  try {
+    const o = await api('uruchom', { sql: box.querySelector('.konsola').value });
+    out.innerHTML = o.powod ? `<p class="task__result is-bad">${icon('cross')}<span>${esc(o.powod)}</span></p>`
+      : o.kolumny ? tabela(o.kolumny, o.wiersze) + (o.wiersze.length >= 100 ? '<p class="label">Pokazano pierwsze 100 wierszy.</p>' : '')
+      : `<p class="label">Polecenie wykonane, zmienione wiersze: ${o.zmienione}. Następne uruchomienie znów zacznie od świeżej bazy.</p>`;
+  } catch (err) {
+    out.innerHTML = `<p class="task__result is-bad">${icon('cross')}<span>${esc(bladTekst(err))}</span></p>`;
   }
 }
 function pomoc(art, rodzaj) {
   const { z } = ZADANIE[art.dataset.id], gdzie = art.querySelector('.task__aids');
   if (gdzie.querySelector(`[data-aid="${rodzaj}"]`)) return;
+  if (rodzaj === 'odp') { P.podglad[z.id] = 1; odznacz(art); zapisz(); }
   gdzie.insertAdjacentHTML(rodzaj === 'pod' ? 'afterbegin' : 'beforeend', rodzaj === 'pod'
     ? `<div class="note pop" data-aid="pod" role="note" aria-label="Podpowiedź">${esc(z.pod)}</div>`
     : `<div class="solution" data-aid="odp"><p class="label">Rozwiązanie wzorcowe</p>${kod(z.wzor)}</div>`);
@@ -570,6 +604,8 @@ app.addEventListener('click', e => {
   if (akcja === 'dalej') idzDalej();
   else if (akcja === 'sprawdz') sprawdz(art);
   else if (akcja === 'pod' || akcja === 'odp') pomoc(art, akcja);
+  else if (akcja === 'uruchom') uruchomSql(b.closest('.dbview'));
+  else if (akcja === 'tabela') { const box = b.closest('.dbview'); box.querySelector('.konsola').value = 'SELECT * FROM ' + b.dataset.t; uruchomSql(box); }
   else if (akcja === 'reset-kod') {
     const ta = art.querySelector('textarea'), z = ZADANIE[art.dataset.id].z, start = z.start ?? '';
     if (ta.value !== start && !confirm('Usunąć Twój kod i wrócić do kodu startowego?')) return;
@@ -596,7 +632,9 @@ app.addEventListener('input', e => {
   clearTimeout(szkicZapis); szkicZapis = setTimeout(zapisz, 600);
 });
 app.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.matches('.code-input')) { e.preventDefault(); sprawdz(e.target.closest('.task')); }
+  if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
+  if (e.target.matches('.code-input')) { e.preventDefault(); sprawdz(e.target.closest('.task')); }
+  else if (e.target.matches('.konsola')) { e.preventDefault(); uruchomSql(e.target.closest('.dbview')); }
 });
 addEventListener('keydown', e => {
   if (!/^[1-4]$/.test(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;

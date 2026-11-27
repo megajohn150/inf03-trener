@@ -34,6 +34,16 @@ switch ($_GET['co'] ?? '') {
         catch (mysqli_sql_exception $e) {
             $wyslij(['blad' => $bladBazy($e)], 503);
         }
+    case 'uruchom': // konsola bez oceniania: jedno polecenie na świeżej bazie sklepu
+        if (!$post || !is_string($dane['sql'] ?? null)) $wyslij(['blad' => 'Brak danych'], 400);
+        if (trim($dane['sql']) === '') $wyslij(['powod' => 'Wpisz zapytanie.']);
+        try {
+            $w = wykonaj(__DIR__ . '/sql/sklep.sql', $dane['sql'], null);
+            $wyslij(['kolumny' => $w['kolumny'], 'wiersze' => array_slice($w['wiersze'], 0, 100), 'zmienione' => $w['zmienione']]);
+        } catch (mysqli_sql_exception $e) {
+            if (in_array($e->getCode(), [2002, 2003, 1045], true)) $wyslij(['blad' => $bladBazy($e)], 503);
+            $wyslij(['powod' => bladSql($e)]);
+        }
     case 'php':
         if (!$post || !is_string($dane['kod'] ?? null) || !is_string($dane['wzor'] ?? null)) $wyslij(['blad' => 'Brak danych'], 400);
         if (trim($dane['kod']) === '') $wyslij(['ok' => false, 'powod' => 'Wpisz kod.']);
