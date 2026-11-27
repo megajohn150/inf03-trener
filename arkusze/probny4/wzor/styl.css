@@ -1,0 +1,14 @@
+body { font-family: 'Trebuchet MS', sans-serif; margin: 0; }
+header, footer { background-color: Teal; color: white; padding: 10px; }
+.uklad { display: flex; }
+#galeria, #adopcja { width: 50%; padding: 10px; }
+#adopcja { background-color: MintCream; }
+#duze { width: 400px; }
+.miniatura { width: 120px; border: 3px solid Teal; cursor: pointer; }
+.miniatura:hover { opacity: 0.7; }
+#formularz { display: none; }
+#komunikat { color: DarkRed; font-weight: bold; }
+@media (max-width: 800px) {
+  .uklad { display: block; }
+  #galeria, #adopcja { width: 100%; }
+}

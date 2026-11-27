@@ -61,7 +61,55 @@ function bladSql(mysqli_sql_exception $e): string
     };
 }
 
-function ocen(string $seed, array $z): array
+/**
+ * Ocenia na kilku zestawach danych: zapytanie dopasowane do konkretnych wierszy przejdzie na pierwszym, ale nie na drugim.
+ * CREATE USER, GRANT i REVOKE porównuje po treści, bo konto ćwiczeń nie ma do nich praw.
+ */
+function ocen(array $seedy, array $z): array
+{
+    if (preg_match('/^\s*(CREATE\s+USER|GRANT|REVOKE)\b/i', $z['wzor'])) return ocenKonto($z['sql'], $z['wzor']);
+    foreach ($seedy as $i => $seed) {
+        $o = ocenNa($seed, $z);
+        if (!$o['ok'] && $i) $o['powod'] = 'Na podstawowych danych wynik się zgadza, ale na drugim zestawie danych już nie. Warunek nie może zależeć od konkretnych wierszy. ' . $o['powod'];
+        if (!$o['ok']) return $o;
+    }
+    return $o;
+}
+
+/** Rozbiera CREATE USER, GRANT albo REVOKE na części porównywane bez względu na cudzysłowy, wielkość liter i kolejność uprawnień. */
+function rozbierzKonto(string $s): ?array
+{
+    $s = preg_replace('/\s+/', ' ', trim(rtrim(trim($s), ';')));
+    $bez = fn($x) => trim(trim($x), "'\"`");
+    $kto = function ($u) use ($bez) { [$n, $h] = array_pad(explode('@', $u, 2), 2, '%'); return $bez($n) . '@' . strtolower($bez($h)); };
+    $prawa = function ($p) { $t = array_map(fn($x) => str_replace('ALL PRIVILEGES', 'ALL', strtoupper(trim($x))), explode(',', $p)); sort($t); return implode(', ', $t); };
+    $obiekt = fn($o) => strtolower(str_replace(['`', '"', "'"], '', $o));
+    if (preg_match('/^CREATE USER (?:IF NOT EXISTS )?(\S+)(?: IDENTIFIED BY ([\'"])(.*)\2)?$/i', $s, $m))
+        return ['typ' => 'CREATE USER', 'uzytkownik' => $kto($m[1]), 'haslo' => $m[3] ?? null];
+    if (preg_match('/^GRANT (.+?) ON (?:TABLE )?(\S+) TO (\S+)( WITH GRANT OPTION)?$/i', $s, $m))
+        return ['typ' => 'GRANT', 'prawa' => $prawa($m[1]), 'obiekt' => $obiekt($m[2]), 'uzytkownik' => $kto($m[3]), 'opcja' => !empty($m[4])];
+    if (preg_match('/^REVOKE (.+?) ON (?:TABLE )?(\S+) FROM (\S+)$/i', $s, $m))
+        return ['typ' => 'REVOKE', 'prawa' => $prawa($m[1]), 'obiekt' => $obiekt($m[2]), 'uzytkownik' => $kto($m[3])];
+    return null;
+}
+
+function ocenKonto(string $sql, string $wzor): array
+{
+    $a = rozbierzKonto($sql);
+    $b = rozbierzKonto($wzor);
+    if (!$a) return ['ok' => false, 'powod' => 'Nie rozpoznano polecenia. Wzory: CREATE USER \'nazwa\'@\'host\' IDENTIFIED BY \'hasło\', GRANT prawa ON baza.tabela TO \'nazwa\'@\'host\', REVOKE prawa ON baza.tabela FROM \'nazwa\'@\'host\'.'];
+    if ($a['typ'] !== $b['typ']) return ['ok' => false, 'powod' => "To zadanie wymaga polecenia {$b['typ']}."];
+    // Bez nazwy bazy (np. ON produkty) liczy się sama tabela: tak działa polecenie z wybraną bazą w phpMyAdmin.
+    $tabela = fn($o) => substr(strrchr('.' . $o, '.'), 1);
+    if (isset($b['obiekt']) && $a['obiekt'] !== $b['obiekt'] && (str_contains($a['obiekt'], '.') && str_contains($b['obiekt'], '.') || $tabela($a['obiekt']) !== $tabela($b['obiekt'])))
+        return ['ok' => false, 'powod' => "Uprawnienia dotyczą innej bazy lub tabeli niż w zadaniu (masz: {$a['obiekt']})."];
+    $powody = ['uzytkownik' => "Inny użytkownik lub host (masz: {$a['uzytkownik']}). Pamiętaj o zapisie 'nazwa'@'host'.", 'haslo' => 'Inne hasło albo go brakuje.',
+        'prawa' => 'Inne uprawnienia (masz: ' . ($a['prawa'] ?? '') . ').', 'opcja' => 'Sprawdź WITH GRANT OPTION: prawo do przekazywania uprawnień.'];
+    foreach ($powody as $k => $p) if (($a[$k] ?? null) !== ($b[$k] ?? null)) return ['ok' => false, 'powod' => $p];
+    return ['ok' => true];
+}
+
+function ocenNa(string $seed, array $z): array
 {
     $sprawdz = $z['sprawdz'] ?? null;
     $wzor = wykonaj($seed, $z['wzor'], $sprawdz);
@@ -85,7 +133,6 @@ function ocen(string $seed, array $z): array
     $sa = $a; $sb = $b; sort($sa); sort($sb);
     if ($sa !== $sb) return $odp + ['powod' => $sprawdz ? 'Polecenie działa, ale baza po nim wygląda inaczej niż powinna.' : 'Liczba wierszy się zgadza, ale wartości są inne.'];
     if (!empty($z['kolejnosc']) && $a !== $b) return $odp + ['powod' => 'Dane są dobre, ale w złej kolejności.'];
-    // shortcut: jeden zestaw danych, warunek „na sztywno” przejdzie; dodać drugi zestaw, gdy to zacznie przeszkadzać
     return ['ok' => true] + $odp;
 }
 

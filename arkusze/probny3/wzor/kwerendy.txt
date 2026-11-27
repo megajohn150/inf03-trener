@@ -1,0 +1,4 @@
+SELECT tytul, rok FROM ksiazki WHERE gatunek = 'fantastyka' ORDER BY rok DESC;
+SELECT autorzy.imie, autorzy.nazwisko, ksiazki.tytul FROM ksiazki JOIN autorzy ON ksiazki.autor_id = autorzy.id WHERE ksiazki.rok > 2000;
+SELECT czytelnik, COUNT(*) FROM wypozyczenia WHERE data_zwrotu IS NULL GROUP BY czytelnik;
+GRANT SELECT, UPDATE ON biblioteka.ksiazki TO 'bibliotekarz'@'localhost';

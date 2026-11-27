@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Schronisko Łapa</title>
+  <link rel="stylesheet" href="styl.css">
+</head>
+<body>
+  <header><img src="ikona.png" alt="Łapa"><h1>Schronisko Łapa</h1></header>
+  <div class="uklad">
+    <section id="galeria">
+      <h2>Nasi podopieczni</h2>
+      <img id="duze" src="zwierze1.jpg" alt="Podopieczny">
+      <p id="opis">Burek</p>
+      <img class="miniatura" src="zwierze1.jpg" alt="Burek">
+      <img class="miniatura" src="zwierze2.jpg" alt="Mruczek">
+      <img class="miniatura" src="zwierze3.jpg" alt="Fafik">
+    </section>
+    <section id="adopcja">
+      <h2>Adopcja</h2>
+      <button id="pokaz">Pokaż formularz</button>
+      <form id="formularz">
+        <label for="imie">Imię:</label> <input type="text" id="imie"><br>
+        <label for="email">E-mail:</label> <input type="email" id="email"><br>
+        <label for="zwierze">Zwierzę:</label>
+        <select id="zwierze"><option>Burek</option><option>Mruczek</option><option>Fafik</option></select><br>
+        <label><input type="checkbox" id="zgoda"> Zapoznałem się z regulaminem</label><br>
+        <button type="button" id="wyslij">Wyślij</button>
+      </form>
+      <p id="komunikat"></p>
+    </section>
+  </div>
+  <footer><p>Stronę wykonał: 00000000000</p></footer>
+  <script>
+    const duze = document.getElementById('duze');
+    const opis = document.getElementById('opis');
+    for (const miniatura of document.querySelectorAll('.miniatura')) {
+      miniatura.addEventListener('click', () => {
+        duze.src = miniatura.src;
+        opis.textContent = miniatura.alt;
+      });
+    }
+
+    const formularz = document.getElementById('formularz');
+    const pokaz = document.getElementById('pokaz');
+    pokaz.addEventListener('click', () => {
+      const ukryty = getComputedStyle(formularz).display === 'none';
+      formularz.style.display = ukryty ? 'block' : 'none';
+      pokaz.textContent = ukryty ? 'Ukryj formularz' : 'Pokaż formularz';
+    });
+
+    document.getElementById('wyslij').addEventListener('click', () => {
+      const imie = document.getElementById('imie').value.trim();
+      const email = document.getElementById('email').value;
+      const komunikat = document.getElementById('komunikat');
+      if (imie === '') komunikat.textContent = 'Podaj imię';
+      else if (!email.includes('@')) komunikat.textContent = 'Podaj poprawny e-mail';
+      else if (!document.getElementById('zgoda').checked) komunikat.textContent = 'Zaakceptuj regulamin';
+      else komunikat.textContent = 'Dziękujemy, ' + imie + '! Skontaktujemy się w sprawie: ' + document.getElementById('zwierze').value;
+    });
+  </script>
+</body>
+</html>

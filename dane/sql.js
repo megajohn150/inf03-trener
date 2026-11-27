@@ -126,7 +126,32 @@ CREATE VIEW drogie AS SELECT nazwa, cena FROM produkty WHERE cena &gt; 500;</pre
   { id: 'pod2', t: 'Wybierz imię i nazwisko klientów, którzy mają zamówienie w statusie „w trakcie”. Użyj IN z podzapytaniem.', wzor: "SELECT imie, nazwisko FROM klienci WHERE id IN (SELECT klient_id FROM zamowienia WHERE status = 'w trakcie')", zle: "SELECT imie, nazwisko FROM klienci WHERE id IN (SELECT id FROM zamowienia WHERE status = 'w trakcie')", pod: 'Podzapytanie zwraca klient_id.' },
   { id: 'pod3', t: 'Policz, w ilu różnych miastach mieszkają klienci.', wzor: 'SELECT COUNT(DISTINCT miasto) FROM klienci', zle: 'SELECT COUNT(miasto) FROM klienci', pod: 'COUNT(DISTINCT …).' },
   { id: 'pod4', t: 'Wypisz w jednej kolumnie bez powtórzeń wszystkie miasta klientów i wszystkie kategorie produktów.', wzor: 'SELECT miasto FROM klienci UNION SELECT kategoria FROM produkty', zle: 'SELECT miasto FROM klienci UNION ALL SELECT kategoria FROM produkty', pod: 'UNION usuwa powtórzenia.' },
-  { id: 'pod5', t: 'Utwórz widok dostepne z nazwą i ilością produktów, których ilość jest większa od 0.', wzor: 'CREATE VIEW dostepne AS SELECT nazwa, ilosc FROM produkty WHERE ilosc > 0', zle: 'CREATE VIEW dostepne AS SELECT nazwa, ilosc FROM produkty', sprawdz: 'SELECT * FROM dostepne', pod: 'CREATE VIEW nazwa AS SELECT …' } ] }
+  { id: 'pod5', t: 'Utwórz widok dostepne z nazwą i ilością produktów, których ilość jest większa od 0.', wzor: 'CREATE VIEW dostepne AS SELECT nazwa, ilosc FROM produkty WHERE ilosc > 0', zle: 'CREATE VIEW dostepne AS SELECT nazwa, ilosc FROM produkty', sprawdz: 'SELECT * FROM dostepne', pod: 'CREATE VIEW nazwa AS SELECT …' } ] },
+{ id: 'uprawnienia', tytul: 'Użytkownicy, uprawnienia, klucze obce', lekcja: `
+<p>Te polecenia często trafiają do kwerend w arkuszu. Na egzaminie wykonujesz je jako <code>root</code> w phpMyAdmin, na karcie SQL.</p>
+<pre>CREATE USER 'anna'@'localhost' IDENTIFIED BY 'Haslo1!';
+GRANT SELECT, INSERT ON sklep.* TO 'anna'@'localhost';       -- cała baza
+GRANT UPDATE ON sklep.produkty TO 'anna'@'localhost';        -- jedna tabela
+GRANT ALL PRIVILEGES ON sklep.* TO 'anna'@'localhost' WITH GRANT OPTION;
+REVOKE INSERT ON sklep.* FROM 'anna'@'localhost';
+DROP USER 'anna'@'localhost';
+
+CREATE TABLE opinie (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  produkt_id INT NOT NULL,
+  FOREIGN KEY (produkt_id) REFERENCES produkty(id)
+);
+ALTER TABLE opinie ADD FOREIGN KEY (produkt_id) REFERENCES produkty(id);</pre>
+<ul><li>Użytkownik to zawsze para <code>'nazwa'@'host'</code>; bez hosta MySQL przyjmie <code>'%'</code>, czyli dowolny komputer.</li><li><code>GRANT</code> łączy się z <code>TO</code>, a <code>REVOKE</code> z <code>FROM</code>.</li><li><code>baza.*</code> to wszystkie tabele bazy, <code>baza.tabela</code> jedna tabela.</li><li><code>WITH GRANT OPTION</code> pozwala przekazywać uprawnienia dalej.</li></ul>
+<p>Konto ćwiczeń nie może tworzyć użytkowników, więc <code>CREATE USER</code>, <code>GRANT</code> i <code>REVOKE</code> są tu sprawdzane po treści polecenia: użytkownik, host, hasło, uprawnienia (w dowolnej kolejności) i baza lub tabela. Klucz obcy naprawdę się wykonuje.</p>`,
+  zadania: [
+  { id: 'adm1', t: 'Utwórz użytkownika sprzedawca na serwerze localhost z hasłem Sklep2026.', wzor: "CREATE USER 'sprzedawca'@'localhost' IDENTIFIED BY 'Sklep2026'", zle: "CREATE USER 'sprzedawca' IDENTIFIED BY 'Sklep2026'", pod: "Użytkownik to 'nazwa'@'host', hasło po IDENTIFIED BY." },
+  { id: 'adm2', t: 'Nadaj użytkownikowi sprzedawca (localhost) prawo odczytu i dodawania danych we wszystkich tabelach bazy sklep.', wzor: "GRANT SELECT, INSERT ON sklep.* TO 'sprzedawca'@'localhost'", zle: "GRANT SELECT, UPDATE ON sklep.* TO 'sprzedawca'@'localhost'", pod: 'Odczyt to SELECT, dodawanie INSERT; wszystkie tabele to sklep.*' },
+  { id: 'adm3', t: 'Nadaj użytkownikowi kierownik (localhost) prawa SELECT, UPDATE i DELETE tylko do tabeli produkty w bazie sklep.', wzor: "GRANT SELECT, UPDATE, DELETE ON sklep.produkty TO 'kierownik'@'localhost'", zle: "GRANT SELECT, UPDATE, DELETE ON sklep.* TO 'kierownik'@'localhost'", pod: 'Jedna tabela: baza.tabela.' },
+  { id: 'adm4', t: 'Odbierz użytkownikowi sprzedawca (localhost) prawo dodawania danych w bazie sklep.', wzor: "REVOKE INSERT ON sklep.* FROM 'sprzedawca'@'localhost'", zle: "REVOKE INSERT ON sklep.* TO 'sprzedawca'@'localhost'", pod: 'REVOKE … FROM, nie TO.' },
+  { id: 'adm5', t: 'Nadaj użytkownikowi admin (localhost) wszystkie uprawnienia do bazy sklep, z prawem przekazywania ich innym.', wzor: "GRANT ALL PRIVILEGES ON sklep.* TO 'admin'@'localhost' WITH GRANT OPTION", zle: "GRANT ALL PRIVILEGES ON sklep.* TO 'admin'@'localhost'", pod: 'ALL PRIVILEGES i WITH GRANT OPTION na końcu.' },
+  { id: 'adm6', t: 'Utwórz tabelę opinie: id (liczba całkowita, klucz główny, autonumerowanie), produkt_id (liczba całkowita, wymagana) będąca kluczem obcym do produkty.id oraz tresc (typ TEXT).', wzor: 'CREATE TABLE opinie (id INT PRIMARY KEY AUTO_INCREMENT, produkt_id INT NOT NULL, tresc TEXT, FOREIGN KEY (produkt_id) REFERENCES produkty(id))', zle: 'CREATE TABLE opinie (id INT PRIMARY KEY AUTO_INCREMENT, produkt_id INT NOT NULL, tresc TEXT)',
+    sprawdz: "SELECT column_name, column_type, is_nullable, column_key, extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'opinie' UNION ALL SELECT column_name, referenced_table_name, referenced_column_name, 'FK', '' FROM information_schema.key_column_usage WHERE table_schema = DATABASE() AND table_name = 'opinie' AND referenced_table_name IS NOT NULL", pod: 'FOREIGN KEY (kolumna) REFERENCES tabela(kolumna) na końcu listy kolumn.' } ] }
 ];
 for (const t of SQL) for (const z of t.zadania) if (z.kolumnyTabeli)
   z.sprawdz = `SELECT column_name, column_type, is_nullable, column_key, extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '${z.kolumnyTabeli}' ORDER BY ordinal_position`;

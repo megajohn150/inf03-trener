@@ -1,0 +1,15 @@
+body { font-family: Georgia, serif; margin: 0; }
+header, footer { background-color: DarkGreen; color: white; padding: 10px; }
+nav { background-color: Honeydew; padding: 8px; }
+nav a { padding: 5px; text-decoration: none; }
+.uklad { display: flex; }
+#katalog { width: 70%; padding: 10px; }
+#statystyki { width: 30%; padding: 10px; background-color: Honeydew; }
+table { border-collapse: collapse; width: 100%; }
+th { background-color: DarkSeaGreen; color: white; }
+td, th { border: 1px solid DarkGreen; padding: 6px; }
+tr:nth-child(even) { background-color: Honeydew; }
+@media (max-width: 600px) {
+  .uklad { display: block; }
+  #katalog, #statystyki { width: 100%; }
+}

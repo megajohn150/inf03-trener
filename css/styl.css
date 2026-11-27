@@ -563,6 +563,9 @@ a.nrow:hover .nrow__name { text-decoration: underline; text-decoration-color: va
 .steps li { counter-increment: s; display: grid; grid-template-columns: 2.4rem 1fr; gap: 12px; align-items: baseline; font-size: 1.05rem; max-width: 64ch; }
 .steps li::before { content: counter(s); font: 600 1.5rem/1 var(--f-hand); color: var(--pen-blue); text-align: center; }
 .steps a { font-weight: 600; text-decoration-color: currentColor; }
+.gfx__cel { display: block; color: var(--ink-2); font-size: .9rem; }
+.gfx__wynik { display: flex; gap: 6px; align-items: center; margin-top: 4px; font: 600 1.05rem/1.3 var(--f-hand); }
+.gfx__wynik:empty, .gfx__blad:empty { display: none; }
 .scoreform { display: flex; flex-wrap: wrap; gap: 18px; align-items: end; margin-top: 8px; }
 .scoreform label { display: grid; gap: 6px; font-weight: 500; font-size: .95rem; }
 .formmsg { margin: 16px 0 0; font: 600 1.2rem/1.3 var(--f-hand); min-height: 1.3em; }

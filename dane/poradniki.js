@@ -70,6 +70,14 @@ function oblicz() {
   #lewy, #srodek, #prawy { width: 100%; }
 }</pre>` }
 ];
+// Ćwiczenia z grafiki: plik zapisany w praca/grafika jest sprawdzany przez getimagesize (wymiary, format, kanał alfa).
+const GRAFIKA = [
+  { plik: 'baner450.jpg', zrodlo: 'arkusze/probny1/baner.jpg', t: 'Przeskaluj baner.jpg (1200 × 800) do szerokości 450 px z zachowaniem proporcji. Zapisz jako baner450.jpg.', cel: '450 × 300 px, JPEG', spr: g => g[0] === 450 && Math.abs(g[1] - 300) <= 2 && g.mime === 'image/jpeg' },
+  { plik: 'talerz200.png', zrodlo: 'arkusze/probny2/talerz.jpg', t: 'Przeskaluj talerz.jpg (600 × 600) do 200 × 200 px i zapisz w formacie PNG jako talerz200.png.', cel: '200 × 200 px, PNG', spr: g => g[0] === 200 && g[1] === 200 && g.mime === 'image/png' },
+  { plik: 'polka.jpg', zrodlo: 'arkusze/probny3/ksiazki.jpg', t: 'Wykadruj z ksiazki.jpg (1000 × 500) kwadrat 500 × 500 px, bez skalowania. Zapisz jako polka.jpg.', cel: '500 × 500 px, JPEG', spr: g => g[0] === 500 && g[1] === 500 && g.mime === 'image/jpeg' },
+  { plik: 'obrot.jpg', zrodlo: 'arkusze/probny4/zwierze2.jpg', t: 'Obróć zwierze2.jpg (800 × 600) o 90° i zapisz jako obrot.jpg.', cel: '600 × 800 px, JPEG', spr: g => g[0] === 600 && g[1] === 800 && g.mime === 'image/jpeg' },
+  { plik: 'talerz_alfa.png', zrodlo: 'arkusze/probny2/talerz.jpg', t: 'Usuń tło wokół talerza z talerz.jpg (kanał alfa, różdżka, Delete) i zapisz jako talerz_alfa.png z przezroczystością.', cel: 'PNG z kanałem alfa', spr: g => g.mime === 'image/png' && g.alfa }
+];
 const SESJE = [
   ['2026-czerwiec', 'czerwiec 2026', true], ['2026-styczen', 'styczeń 2026', true], ['2025-czerwiec', 'czerwiec 2025', true], ['2025-styczen', 'styczeń 2025', false],
   ['2024-czerwiec', 'czerwiec 2024', false], ['2024-styczen', 'styczeń 2024', true], ['2023-czerwiec', 'czerwiec 2023', true], ['2023-styczen', 'styczeń 2023', true],

@@ -28,9 +28,9 @@ switch ($_GET['co'] ?? '') {
     case 'sql':
         if (!$post || !is_string($dane['sql'] ?? null) || !is_string($dane['wzor'] ?? null)) $wyslij(['blad' => 'Brak danych'], 400);
         if (trim($dane['sql']) === '') $wyslij(['ok' => false, 'powod' => 'Wpisz zapytanie.']);
-        $seed = isset($dane['arkusz']) ? __DIR__ . '/arkusze/' . $nazwa($dane['arkusz']) . '/baza.sql' : __DIR__ . '/sql/sklep.sql';
-        if (!is_file($seed)) $wyslij(['blad' => 'Brak bazy arkusza'], 404);
-        try { $wyslij(ocen($seed, $dane)); }
+        $seedy = isset($dane['arkusz']) ? [__DIR__ . '/arkusze/' . $nazwa($dane['arkusz']) . '/baza.sql'] : [__DIR__ . '/sql/sklep.sql', __DIR__ . '/sql/sklep2.sql'];
+        if (!is_file($seedy[0])) $wyslij(['blad' => 'Brak bazy arkusza'], 404);
+        try { $wyslij(ocen($seedy, $dane)); }
         catch (mysqli_sql_exception $e) {
             $wyslij(['blad' => $bladBazy($e)], 503);
         }
@@ -56,6 +56,11 @@ switch ($_GET['co'] ?? '') {
             if (!is_file("$kat/$p") || $p[0] === '.') continue;
             $pliki[$p] = preg_match('/\.(php|html?|css|js|txt|sql)$/i', $p) ? file_get_contents("$kat/$p")
                 : (preg_match('/\.(jpe?g|png|gif)$/i', $p) ? (getimagesize("$kat/$p") ?: null) : null);
+            // PNG z kanałem alfa: typ koloru 4 lub 6 w nagłówku IHDR (bajt 25) albo blok tRNS.
+            if (($pliki[$p]['mime'] ?? '') === 'image/png') {
+                $b = file_get_contents("$kat/$p");
+                $pliki[$p]['alfa'] = (ord($b[25] ?? "\0") & 4) === 4 || str_contains($b, 'tRNS');
+            }
         }
         $wyslij((object) $pliki);
 }

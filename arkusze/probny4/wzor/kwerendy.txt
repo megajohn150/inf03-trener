@@ -1,0 +1,4 @@
+SELECT imie, wiek FROM zwierzeta WHERE gatunek = 'pies' AND wiek < 5;
+SELECT gatunek, AVG(wiek) FROM zwierzeta GROUP BY gatunek;
+SELECT zwierzeta.imie, adopcje.opiekun FROM adopcje JOIN zwierzeta ON adopcje.zwierze_id = zwierzeta.id WHERE YEAR(adopcje.data_adopcji) = 2026;
+ALTER TABLE adopcje ADD FOREIGN KEY (zwierze_id) REFERENCES zwierzeta(id);

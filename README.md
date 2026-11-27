@@ -39,11 +39,11 @@ wykonują, a wynik jest porównywany z wynikiem wzorcowego rozwiązania.
 
 | Część | Zawartość |
 |---|---|
-| **Praktyka** | 145 zadań w 29 tematach, każdy temat z krótką lekcją: SQL 45, PHP 35, HTML 20, CSS 20, JavaScript 25 |
+| **Praktyka** | 151 zadań w 30 tematach, każdy temat z krótką lekcją: SQL 51 (z użytkownikami i uprawnieniami), PHP 35, HTML 20, CSS 20, JavaScript 25 |
 | **Teoria** | 318 pytań ABCD z 8 działów, losowane serie po 10 (najpierw te, w których się mylisz) |
 | **Egzamin ABCD** | 40 pytań w 60 minut, jak na prawdziwym egzaminie |
-| **Arkusze** | 2 arkusze próbne oceniane automatycznie (PHP: „Wypożyczalnia rowerów”, JS: „Catering Smakosz”) oraz 11 prawdziwych sesji CKE z zegarem 150 minut i ręcznym wpisem punktów |
-| **Poradniki** | egzamin krok po kroku, GIMP, phpMyAdmin i zrzuty ekranu, ściąga ze wzorcami skryptów |
+| **Arkusze** | 4 arkusze próbne oceniane automatycznie (PHP: „Wypożyczalnia rowerów”, „Biblioteka szkolna”; JS: „Catering Smakosz”, „Schronisko Łapa”) oraz 11 prawdziwych sesji CKE z zegarem 150 minut i ręcznym wpisem punktów |
+| **Poradniki** | egzamin krok po kroku, GIMP z 5 ćwiczeniami sprawdzanymi automatycznie, phpMyAdmin i zrzuty ekranu, ściąga ze wzorcami skryptów |
 | **Powtórka** | wraca do zrobionych zadań, zaczynając od tych, które nie wyszły |
 
 Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamięci przeglądarki.
@@ -63,12 +63,13 @@ Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamię
 
 ## Jak sprawdzane są zadania
 
-- **SQL**: baza ćwiczeń jest odtwarzana od zera, potem wykonywane jest Twoje zapytanie i zapytanie wzorcowe, a wyniki są porównywane. Dla `INSERT`, `UPDATE` i `DELETE` porównywany jest stan bazy po wykonaniu.
+- **SQL**: baza ćwiczeń jest odtwarzana od zera, potem wykonywane jest Twoje zapytanie i zapytanie wzorcowe, a wyniki są porównywane. Dla `INSERT`, `UPDATE` i `DELETE` porównywany jest stan bazy po wykonaniu. Wszystko dzieje się na dwóch zestawach danych (`sql/sklep.sql` i `sql/sklep2.sql`), więc warunek dopasowany do konkretnych wierszy nie przejdzie. `CREATE USER`, `GRANT` i `REVOKE` są porównywane po treści polecenia, bo konto ćwiczeń nie może zarządzać użytkownikami.
 - **PHP**: Twój kod naprawdę się uruchamia z danymi z formularza (`$_POST`, `$_GET`, `$_COOKIE`). Wynik, stan bazy i zapisane pliki są porównywane ze wzorem.
 - **HTML**: podgląd strony i sprawdzenie, czy wymagane elementy są na miejscu.
 - **CSS**: porównanie wyliczonych stylów i położenia elementów z wynikiem wzoru, przy kilku szerokościach okna. Przechodzi każdy poprawny zapis, nie tylko jeden konkretny.
 - **JavaScript**: skrypt działa w izolowanej ramce, która klika i wpisuje za Ciebie, a wyniki są porównywane ze wzorem.
-- **Arkusze próbne**: pliki z `praca/<arkusz>/` są oceniane według kryteriów podobnych do zasad CKE (31 z 33–34 kryteriów automatycznie, resztę zaznaczasz ręcznie).
+- **Arkusze próbne**: pliki z `praca/<arkusz>/` są oceniane według kryteriów podobnych do zasad CKE (wszystkie poza 2–3 automatycznie, resztę zaznaczasz ręcznie). Ocena klika w stronę, wysyła formularze i otwiera ją z parametrami w adresie.
+- **Grafika**: pliki z `praca/grafika/` są sprawdzane pod kątem wymiarów, formatu i przezroczystości.
 
 ## Wymagania
 
@@ -87,7 +88,7 @@ Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamię
 
 3. Kliknij dwukrotnie `start.command`. Strona otworzy się pod adresem http://127.0.0.1:8003. Zamknięcie okna terminala wyłącza serwer.
 
-Rozwiązania arkuszy próbnych zapisuj w `praca/probny1/` i `praca/probny2/`.
+Rozwiązania arkuszy próbnych zapisuj w `praca/probny1/` … `praca/probny4/`, a ćwiczenia z grafiki w `praca/grafika/`.
 
 ## Testy
 
@@ -115,9 +116,9 @@ css/styl.css        wygląd
 css/fonty/          czcionki lokalne (Atkinson Hyperlegible Next i Mono, Shantell Sans; licencja SIL OFL w OFL.txt)
 dane/*.js           treść: lekcje, zadania, pytania ABCD, arkusze, poradniki
 dane/postep.json    Twój postęp (tworzy się sam, nie trafia do repo)
-sql/                instalacja bazy ćwiczeń i dane sklepu do zadań
+sql/                instalacja bazy ćwiczeń i dwa zestawy danych sklepu do zadań
 arkusze/<id>/       baza arkusza, pliki startowe i wzorcowe rozwiązanie (wzor/)
-praca/<id>/         tu zapisujesz swoje rozwiązania arkuszy (nie trafiają do repo)
+praca/<id>/         tu zapisujesz swoje rozwiązania arkuszy i grafiki (nie trafiają do repo)
 testy/              testy treści i sprawdzarek (test.sh, test.php, test.html)
 zrzuty/             zrzuty ekranu do tego pliku
 ```
@@ -139,7 +140,7 @@ Hasło użytkownika ćwiczeń w `sql/instalacja.sql` jest celowo proste: konto d
 ## Znane ograniczenia
 
 - Pytania ABCD są napisane od zera przez Claude. Nie pochodzą z banku CKE, który nie jest publiczny, i nikt ich nie weryfikował. Jeśli odpowiedź wygląda na błędną, popraw ją w `dane/abcd.js` lub `dane/abcd2.js` (poprawna jest zawsze pierwsza opcja).
-- Zadania SQL mają jeden zestaw danych, więc zapytanie z warunkiem wpisanym „na sztywno” może przejść.
+- `CREATE USER`, `GRANT` i `REVOKE` są sprawdzane po treści, nie wykonywane: nietypowy, ale poprawny zapis (np. uprawnienia do pojedynczych kolumn) może nie przejść.
 - Prawdziwe sesje to linki do arkusze.pl. Bez internetu nie działają, a plików nie ma w repo.
 - Wygląd strony (kolory, „czy ładnie wygląda”) nie jest oceniany automatycznie.
 

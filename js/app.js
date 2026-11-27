@@ -478,7 +478,7 @@ function arkusz(id) {
       <article class="sheet prose taped">${a.tresc}</article>
       <section class="grade sheet sheet--grid" aria-labelledby="ocenaH">
         <h2 class="h2" id="ocenaH">Ocena</h2>
-        <p class="prose">Pracuj w <code>praca/${a.id}</code>. XAMPP musi mieć włączony MySQL, a baza musi być zaimportowana. Ocena otwiera Twoją stronę${a.post ? ' i wysyła formularz' : ' i klika w nią jak egzaminator'}. Wzorcowe rozwiązanie: <code>arkusze/${a.id}/wzor</code> (zajrzyj dopiero po ocenie).</p>
+        <p class="prose">Pracuj w <code>praca/${a.id}</code>. XAMPP musi mieć włączony MySQL, a baza musi być zaimportowana. Ocena otwiera Twoją stronę${a.post ? ' i wysyła formularz' : a.get ? ', także z parametrami w adresie' : ' i klika w nią jak egzaminator'}. Wzorcowe rozwiązanie: <code>arkusze/${a.id}/wzor</code> (zajrzyj dopiero po ocenie).</p>
         <button class="btn btn--primary" data-act="ocen" data-id="${a.id}">Oceń moją pracę</button>
         <div class="gradeout" role="status" aria-live="polite"></div>
       </section>
@@ -492,7 +492,8 @@ async function ocenArkusz(a, gdzie) {
   try {
     const pliki = await (await fetch('api.php?co=praca&arkusz=' + a.id)).json();
     if (!(a.strona in pliki)) throw new Error(`Nie ma pliku praca/${a.id}/${a.strona}.`);
-    const moje = (pliki['kwerendy.txt'] || '').split(';').map(x => x.slice(Math.max(0, x.search(/\b(SELECT|UPDATE|INSERT|DELETE|CREATE|ALTER)\b/i))).trim()).filter(Boolean);
+    // Każde polecenie zaczyna się od pierwszego słowa kluczowego (pomija numerację i komentarze przed nim). GRANT przed SELECT, bo „GRANT SELECT …”.
+    const moje = (pliki['kwerendy.txt'] || '').split(';').map(x => x.slice(Math.max(0, x.search(/\b(SELECT|UPDATE|INSERT|DELETE|CREATE|ALTER|DROP|GRANT|REVOKE)\b/i))).trim()).filter(Boolean);
     const kw = [];
     for (const z of a.kwerendy) {
       let ok = false;
@@ -515,7 +516,7 @@ async function ocenArkusz(a, gdzie) {
       const r = [...doc.querySelectorAll(a.obokSiebie || '.brak')].map(e => e.getBoundingClientRect().left);
       return { top: b.map(x => x.top), left: b.map(x => x.left), width: b.map(x => x.width), obok: r.length > 1 && Math.abs(r[0] - r[1]) > 3 };
     };
-    const wasko = await pomiar(700), szeroko = await pomiar(1200);
+    const wasko = await pomiar(a.wasko || 700), szeroko = await pomiar(1200);
     dopasujRamki();
     let opis = '';
     if (a.post) {
@@ -523,14 +524,9 @@ async function ocenArkusz(a, gdzie) {
       const dane = new URLSearchParams(new FormData(form ?? undefined));
       if (pole) { dane.set(pole.name, a.post.wartosc); opis = await (await fetch(url, { method: 'POST', body: dane })).text(); }
     }
-    // licz: ustawia kalkulator jak egzaminator i zwraca kwotę z akapitu #wynik (arkusze z JS)
-    const kalkulator = (opcja, porcje, dostawa) => {
-      doc.getElementById('danie').selectedIndex = opcja; doc.getElementById('porcje').value = porcje; doc.getElementById('dostawa').checked = dostawa;
-      [...doc.querySelectorAll('button, input[type=button], input[type=submit]')].find(b => /Oblicz/.test(b.textContent || b.value)).click();
-      const m = doc.getElementById('wynik').textContent.match(/\d+(?:[.,]\d+)?/);
-      return m ? Math.round(parseFloat(m[0].replace(',', '.')) * 100) / 100 : NaN;
-    };
-    const k = { pliki, kw, doc, win, styl, szeroko, wasko, opis, licz: kalkulator, php: pliki[a.strona], css: pliki['styl.css'] || '' };
+    // get: ta sama strona otwarta z parametrami w adresie, jako osobne dokumenty do sprawdzenia
+    const get = await Promise.all((a.get || []).map(async q => new DOMParser().parseFromString(await (await fetch(`${url}?${q}`)).text(), 'text/html')));
+    const k = { pliki, kw, doc, win, styl, szeroko, wasko, opis, get, php: pliki[a.strona], css: pliki['styl.css'] || '' };
     const wyniki = a.kryteria.map(([, , f]) => { if (!f) return null; try { return !!f(k); } catch { return false; } });
     gdzie.querySelector('.criteria').innerHTML = a.kryteria.map(([r, t], n) => wyniki[n] === null
       ? `<li class="crit is-manual"><label><input type="checkbox" data-n="${n}"><span><strong>${esc(r)}</strong> ${esc(t)}<small>do samodzielnej oceny</small></span></label></li>`
@@ -597,11 +593,35 @@ function sesja(id) {
 // ---- poradniki ----
 function poradniki(id) {
   const p = PORADNIKI.find(x => x.id === id);
-  if (p) return void (app.innerHTML = `<div class="topic">${wstecz('#/poradniki', 'Poradniki')}<h1 class="title" tabindex="-1">${esc(p.tytul)}</h1><article class="sheet prose taped" style="--tape:var(--t-pink)">${p.tresc}</article></div>`);
+  if (p) return void (app.innerHTML = `<div class="topic">${wstecz('#/poradniki', 'Poradniki')}<h1 class="title" tabindex="-1">${esc(p.tytul)}</h1><article class="sheet prose taped" style="--tape:var(--t-pink)">${p.tresc}</article>${p.id === 'grafika' ? grafikaHtml() : ''}</div>`);
   const wyglad = ['sheet taped', 'sheet sheet--grid taped taped--r', 'sheet sheet--kraft', 'note note--blue'];
   app.innerHTML = `
   <div class="pagehead"><h1 class="title" tabindex="-1">Poradniki</h1></div>
   <div class="guides">${PORADNIKI.map((p, i) => `<a class="guide ${wyglad[i % 4]}" href="#/poradniki/${p.id}" style="--tape:var(--t-pink)">${i % 4 === 2 ? '<svg class="clip" aria-hidden="true"><use href="#i-clip"/></svg>' : ''}<h2 class="h2">${esc(p.tytul)}</h2><p>${esc(p.opis)}</p></a>`).join('')}</div>`;
+}
+
+// ---- ćwiczenia z grafiki: pliki z praca/grafika sprawdzane przez getimagesize ----
+function grafikaHtml() {
+  return `<section class="sheet sheet--grid" aria-labelledby="grafH">
+    <h2 class="h2" id="grafH">Ćwiczenia</h2>
+    <p>Pobierz plik, zrób ćwiczenie w GIMP-ie, zapisz wynik w folderze <code>praca/grafika</code> i kliknij „Sprawdź pliki”.</p>
+    <ol class="steps">${GRAFIKA.map((g, i) => `<li data-g="${i}"><span>${esc(g.t)} <a href="${g.zrodlo}" download>Pobierz plik</a><small class="gfx__cel">Cel: ${esc(g.cel)}</small><span class="gfx__wynik" role="status"></span></span></li>`).join('')}</ol>
+    <button class="btn btn--primary" data-act="grafika">Sprawdź pliki</button>
+    <p class="gfx__blad task__result is-bad" role="status"></p>
+  </section>`;
+}
+async function sprawdzGrafike() {
+  const blad = app.querySelector('.gfx__blad');
+  blad.innerHTML = '';
+  let pliki;
+  try { pliki = await (await fetch('api.php?co=praca&arkusz=grafika')).json(); }
+  catch (err) { blad.innerHTML = `${icon('cross')}<span>${esc(bladTekst(err))}</span>`; return; }
+  GRAFIKA.forEach((g, i) => {
+    const el = app.querySelector(`[data-g="${i}"] .gfx__wynik`), x = pliki[g.plik], ok = !!x && g.spr(x);
+    el.className = 'gfx__wynik ' + (ok ? 'is-ok' : 'is-bad');
+    el.innerHTML = `${icon(ok ? 'tick' : 'cross')} ${ok ? 'Dobrze' : !x ? `Brak pliku praca/grafika/${esc(g.plik)}`
+      : `Jest: ${x[0]} × ${x[1]} px, ${esc(x.mime)}${x.mime === 'image/png' ? (x.alfa ? ', z przezroczystością' : ', bez przezroczystości') : ''}`}`;
+  });
 }
 
 // ---- podglądy: ramka o stałej szerokości (700 lub 1200 px) skalowana do miejsca na ekranie ----
@@ -625,6 +645,7 @@ app.addEventListener('click', e => {
   else if (akcja === 'sprawdz') sprawdz(art);
   else if (akcja === 'pod' || akcja === 'odp') pomoc(art, akcja);
   else if (akcja === 'uruchom') uruchomSql(b.closest('.dbview'));
+  else if (akcja === 'grafika') sprawdzGrafike();
   else if (akcja === 'tabela') { const box = b.closest('.dbview'); box.querySelector('.konsola').value = 'SELECT * FROM ' + b.dataset.t; uruchomSql(box); }
   else if (akcja === 'reset-kod') {
     const ta = art.querySelector('textarea'), z = ZADANIE[art.dataset.id].z, start = z.start ?? '';

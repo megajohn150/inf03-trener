@@ -3,7 +3,7 @@ require __DIR__ . '/../sprawdz.php';
 $zle = 0; $n = 0;
 $php = false;
 foreach (json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR) as $z) {
-    $seed = __DIR__ . '/..' . ($z['seed'] ?? '/sql/sklep.sql');
+    $seedy = isset($z['seed']) ? [__DIR__ . '/..' . $z['seed']] : [__DIR__ . '/../sql/sklep.sql', __DIR__ . '/../sql/sklep2.sql'];
     foreach ([[$z['wzor'], true], [$z['zle'], false], [$php ? '<?php echo 1;' : 'SELECT 1', false]] as [$sql, $ma]) {
         $n++;
         if ($php = ($z['typ'] ?? '') === 'php') {
@@ -13,7 +13,7 @@ foreach (json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR)
                 $o = ocenPhp(['kod' => $zm($sql), 'wzor' => $zm($z['wzor'])] + $z);
                 if (!$o['ok']) break;
             }
-        } else $o = ocen($seed, ['sql' => $sql] + $z);
+        } else $o = ocen($seedy, ['sql' => $sql] + $z);
         if ($o['ok'] !== $ma) { $zle++; echo "BŁĄD {$z['id']}: $sql → ", $o['powod'] ?? 'przeszło', "\n"; }
     }
 }
