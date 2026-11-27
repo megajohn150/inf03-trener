@@ -11,7 +11,7 @@ const TONE = { sql: 'var(--t-blue)', php: 'var(--t-pink)', html: 'var(--t-yellow
 const tematow = n => n === 1 ? 'temat' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'tematy' : 'tematów';
 
 // ---- postęp: plik na dysku, a localStorage jako zapas (Safari potrafi je wyczyścić) ----
-let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {} };
+let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {} };
 async function wczytaj() {
   let lokalny = null, plik = null;
   try { lokalny = JSON.parse(localStorage.getItem('inf03')); } catch {}
@@ -65,6 +65,7 @@ function start() {
   const nieudane = Object.keys(P.sql).filter(id => P.sql[id] === 0 && ZADANIE[id]).map(id => ZADANIE[id]);
   const zleQ = ABCD.filter(q => P.abcd[q.id] && !P.abcd[q.id].ok).length;
   const kartki = [
+    P.egzTrwa ? `<a class="note note--kraft" href="#/egzamin">Egzamin ABCD w toku. Zegar biegnie dalej, dokończ go.</a>` : '',
     ...nieudane.slice(0, 2).map(x => `<a class="note note--pink" href="#/powtorka">${esc(x.k.nazwa)} · zadanie ${x.n}<br><span class="note__sub">${esc(x.t.tytul)}</span></a>`),
     zleQ ? `<a class="note note--blue" href="#/abcd">Teoria: pytania z błędem: ${zleQ}. Wrócą w następnej serii.</a>` : '',
   ].filter(Boolean);
@@ -139,11 +140,12 @@ function zadanieHtml({ z, k, n }, i) {
     <p class="task__prompt">${esc(z.t)}</p>
     ${z.html && k.id !== 'html' ? `<details class="folder"><summary>${icon('chev')}Kod HTML, na którym działasz</summary>${kod(z.html)}</details>` : ''}
     <label class="sr" for="ta-${i}-${z.id}">Twoje rozwiązanie</label>
-    <textarea class="code-input" id="ta-${i}-${z.id}" rows="${k.id === 'sql' ? 3 : 7}" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" data-gramm="false">${esc(z.start ?? '')}</textarea>
+    <textarea class="code-input" id="ta-${i}-${z.id}" rows="${k.id === 'sql' ? 3 : 7}" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" data-gramm="false">${esc(P.szkic[z.id] ?? z.start ?? '')}</textarea>
     <div class="actions">
       <button class="btn btn--primary" data-act="sprawdz">Sprawdź</button>
       <button class="btn" data-act="pod">Podpowiedź</button>
       <button class="btn btn--quiet" data-act="odp">Pokaż rozwiązanie</button>
+      <button class="btn btn--quiet" data-act="reset-kod">Od nowa</button>
       <kbd class="shortcut">⌘ / Ctrl + Enter</kbd>
     </div>
     <div class="task__result" role="status" aria-live="polite"></div>
@@ -273,9 +275,12 @@ function nastepnePytanie() {
 }
 
 // ---- egzamin ABCD ----
+// Trwający egzamin siedzi w P.egzTrwa (id pytań, kolejność odpowiedzi, zaznaczenia), więc przeżyje wyjście i odświeżenie.
 let EGZ = null;
+const PYT = Object.fromEntries(ABCD.map(q => [q.id, q]));
 function egzamin() {
   EGZ = null;
+  if (P.egzTrwa) return egzaminRysuj();
   app.innerHTML = `
   <div class="topic">
     <div class="sheet taped today__main">
@@ -286,7 +291,14 @@ function egzamin() {
   </div>`;
 }
 function egzaminStart() {
-  EGZ = { pytania: miesza(ABCD).slice(0, 40).map(q => ({ q, o: miesza(q.o) })), koniec: Date.now() + 36e5 };
+  const pytania = miesza(ABCD).slice(0, 40);
+  P.egzTrwa = { q: pytania.map(q => q.id), o: pytania.map(q => miesza(q.o.map((_, i) => i))), odp: {}, koniec: Date.now() + 36e5 };
+  zapisz();
+  egzaminRysuj();
+}
+function egzaminRysuj() {
+  const t = P.egzTrwa;
+  EGZ = { pytania: t.q.map((id, n) => ({ q: PYT[id], o: t.o[n].map(i => PYT[id]?.o[i]) })).filter(x => x.q), koniec: t.koniec };
   app.innerHTML = `
   <div class="exam">
     <form class="sheet" id="test" aria-labelledby="exT">
@@ -294,13 +306,14 @@ function egzaminStart() {
       ${EGZ.pytania.map(({ q, o }, n) => `
       <fieldset class="eq"><legend><span class="eq__n">${n + 1}.</span><span>${esc(q.p)}</span></legend>
         ${q.kod ? kod(q.kod) : ''}
-        <div class="opts">${o.map((x, m) => `<label class="opt"><input type="radio" name="${esc(q.id)}" value="${m}"><span>${esc(x)}</span></label>`).join('')}</div>
+        <div class="opts">${o.map((x, m) => `<label class="opt"><input type="radio" name="${esc(q.id)}" value="${m}"${t.odp[q.id] == m ? ' checked' : ''}><span>${esc(x)}</span></label>`).join('')}</div>
       </fieldset>`).join('')}
       <div class="exam__end"><button class="btn btn--primary">Zakończ</button></div>
     </form>
     <aside class="note timer" aria-label="Czas egzaminu">Zostało <strong id="zegar">60:00</strong></aside>
   </div>`;
   const f = document.getElementById('test');
+  f.onchange = e => { t.odp[e.target.name] = e.target.value; zapisz(); };
   f.onsubmit = e => {
     e.preventDefault();
     const puste = EGZ.pytania.length - new Set([...new FormData(f).keys()]).size;
@@ -325,6 +338,7 @@ function egzaminKoniec() {
     return !ok;
   });
   const pkt = pytania.length - zle.length;
+  delete P.egzTrwa;
   P.egz.push({ czas, pkt, max: pytania.length }); zapisz();
   app.innerHTML = `
   <div class="topic">
@@ -365,14 +379,29 @@ function arkusze() {
 function zegarHtml(klucz, minuty) {
   const s = P.ark[klucz]?.start;
   return `<aside class="note timer" aria-label="Odliczanie" data-timer="${klucz}" data-min="${minuty}">
-    ${s ? `Zostało <strong data-clock>${hms(minuty * 60)}</strong><button class="btn btn--quiet" data-act="zegar-od-nowa">Zacznij czas od nowa</button>`
+    ${s ? `Zostało <strong data-clock>${hms(minuty * 60)}</strong><span class="timer__msg" data-alert role="status"></span><button class="btn btn--quiet" data-act="zegar-od-nowa">Zacznij czas od nowa</button>`
       : `<button class="btn btn--primary" data-act="zegar-start">Start: ${minuty} minut</button>`}</aside>`;
 }
 function uruchomZegar() {
   const box = app.querySelector('[data-timer]'), el = box?.querySelector('[data-clock]');
   if (!el) return;
   const koniec = P.ark[box.dataset.timer].start + box.dataset.min * 6e4;
-  co(() => { el.textContent = hms(Math.max(0, Math.round((koniec - Date.now()) / 1000))); }, 1000);
+  let przed; // poprzedni odczyt: sygnał tylko przy przekroczeniu progu, nie po wejściu na stronę
+  co(() => {
+    const s = Math.max(0, Math.round((koniec - Date.now()) / 1000));
+    el.textContent = hms(s);
+    box.classList.toggle('is-low', s <= 600);
+    box.classList.toggle('is-end', !s);
+    const prog = [1800, 600, 0].find(p => przed > p && s <= p);
+    if (prog !== undefined) sygnal(box, prog ? `Zostało ${prog / 60} minut.` : 'Koniec czasu! Zapisz wszystkie pliki.');
+    przed = s;
+  }, 1000);
+}
+// Dźwięk, bo podczas arkusza pracujesz w edytorze, a nie na tej karcie. Bez wcześniejszego kliknięcia na stronie przeglądarka go wyciszy.
+function sygnal(box, tekst) {
+  box.querySelector('[data-alert]').textContent = tekst;
+  document.title = '⏰ ' + tekst;
+  try { const a = new AudioContext(), o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); o.stop(a.currentTime + 0.6); } catch {}
 }
 function zegarStart(box, odNowa) {
   if (odNowa && !confirm('Zacząć odliczanie od nowa?')) return;
@@ -452,11 +481,13 @@ async function ocenArkusz(a, gdzie) {
       ? `<li class="crit is-manual"><label><input type="checkbox" data-n="${n}"><span><strong>${esc(r)}</strong> ${esc(t)}<small>do samodzielnej oceny</small></span></label></li>`
       : `<li class="crit ${wyniki[n] ? 'crit--ok' : 'crit--no'}">${icon(wyniki[n] ? 'tick' : 'cross')}<span><span class="sr">${wyniki[n] ? 'spełnione' : 'niespełnione'}: </span><strong>${esc(r)}</strong> ${esc(t)}</span></li>`).join('');
     const licz = () => {
-      const pkt = wyniki.filter(x => x === true).length + gdzie.querySelectorAll('input:checked').length, max = wyniki.length;
+      const reczne = [...gdzie.querySelectorAll('input:checked')].map(x => +x.dataset.n);
+      const pkt = wyniki.filter(x => x === true).length + reczne.length, max = wyniki.length;
       gdzie.querySelector('.sum').innerHTML = `<strong>${pkt} z ${max} (${procent(pkt, max)}%)</strong>, próg 75%, Twój cel 85%`;
-      P.ark[a.id] = { ...P.ark[a.id], pkt, max, czas: Date.now() }; zapisz();
+      P.ark[a.id] = { ...P.ark[a.id], pkt, max, reczne, czas: Date.now() }; zapisz();
     };
-    gdzie.querySelectorAll('input').forEach(x => x.onchange = licz);
+    const reczne = P.ark[a.id]?.reczne || [];
+    gdzie.querySelectorAll('input').forEach(x => { x.checked = reczne.includes(+x.dataset.n); x.onchange = licz; });
     licz();
   } catch (e) {
     gdzie.innerHTML = `<p class="task__result is-bad">${icon('cross')}<span>${esc(e instanceof SyntaxError || (e instanceof TypeError && /fetch|load/i.test(e.message)) ? BLAD_POL : e.message)}</span></p>`;
@@ -538,6 +569,11 @@ app.addEventListener('click', e => {
   if (akcja === 'dalej') idzDalej();
   else if (akcja === 'sprawdz') sprawdz(art);
   else if (akcja === 'pod' || akcja === 'odp') pomoc(art, akcja);
+  else if (akcja === 'reset-kod') {
+    const ta = art.querySelector('textarea'), z = ZADANIE[art.dataset.id].z, start = z.start ?? '';
+    if (ta.value !== start && !confirm('Usunąć Twój kod i wrócić do kodu startowego?')) return;
+    ta.value = start; delete P.szkic[z.id]; zapisz();
+  }
   else if (akcja === 'inne') { powtorka(); fokus(); }
   else if (akcja === 'odpowiedz') odpowiedz(+b.dataset.n);
   else if (akcja === 'nastepne-pytanie') nastepnePytanie();
@@ -545,6 +581,14 @@ app.addEventListener('click', e => {
   else if (akcja === 'egzamin-start') egzaminStart();
   else if (akcja === 'ocen') ocenArkusz(ARKUSZE.find(x => x.id === b.dataset.id), app.querySelector('.gradeout'));
   else if (akcja === 'zegar-start' || akcja === 'zegar-od-nowa') zegarStart(b.closest('[data-timer]'), akcja === 'zegar-od-nowa');
+});
+// Szkic kodu trafia do P od razu, a na dysk z opóźnieniem, żeby nie zapisywać przy każdym znaku.
+let szkicZapis;
+app.addEventListener('input', e => {
+  if (!e.target.matches('.code-input')) return;
+  const z = ZADANIE[e.target.closest('.task').dataset.id].z;
+  if (e.target.value === (z.start ?? '')) delete P.szkic[z.id]; else P.szkic[z.id] = e.target.value;
+  clearTimeout(szkicZapis); szkicZapis = setTimeout(zapisz, 600);
 });
 app.addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.matches('.code-input')) { e.preventDefault(); sprawdz(e.target.closest('.task')); }
@@ -565,8 +609,10 @@ const TRASY = [
 const SEKCJA = { kurs: 'kurs', sql: 'kurs', powtorka: 'kurs', abcd: 'abcd', egzamin: 'egzamin', arkusze: 'arkusze', arkusz: 'arkusze', sesja: 'arkusze', poradniki: 'poradniki' };
 function fokus() { app.querySelector('h1')?.focus({ preventScroll: true }); }
 let pierwszy = true;
+const TYTUL = document.title;
 function trasa() {
   stopZegary();
+  document.title = TYTUL;
   const sciezka = location.hash.replace(/^#/, '') || '/';
   const hit = TRASY.find(([re]) => re.test(sciezka));
   if (hit) hit[1](...sciezka.match(hit[0]).slice(1)); else start();

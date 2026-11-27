@@ -508,6 +508,10 @@ a.nrow:hover .nrow__name { text-decoration: underline; text-decoration-color: va
 .exam { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 36px; align-items: start; }
 .timer { position: sticky; top: 14px; z-index: 5; --tilt: 1.2deg; }
 .timer strong { display: block; font: 700 2.2rem/1.1 var(--f-hand); }
+.timer.is-low strong { color: var(--pen-red); }
+.timer.is-end { --c: var(--n-pink); }
+.timer__msg { display: block; margin-top: 6px; font-size: .95rem; }
+.timer__msg:empty { display: none; }
 .timer .btn { margin-top: 10px; font-size: .9rem; min-height: 40px; padding: 8px 12px; }
 .eq { border: 0; margin: 0; padding: 22px 0; border-bottom: 1px dashed var(--rule); min-width: 0; }
 .eq:first-of-type { padding-top: 0; }
