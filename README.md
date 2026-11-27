@@ -96,7 +96,7 @@ Rozwiązania arkuszy próbnych zapisuj w `praca/probny1/` … `praca/probny4/`, 
 ./testy/test.sh
 ```
 
-Każde zadanie ma wzór, który musi przejść, i typowy błąd, który musi odpaść. Skrypt sprawdza zadania SQL i PHP oraz kwerendy arkuszy (wymaga włączonego MySQL), a potem zadania HTML, CSS i JS w Google Chrome uruchomionym bez okna, na chwilowym serwerze na porcie 8013. Bez Chrome te ostatnie otwórz ręcznie: http://127.0.0.1:8003/testy/test.html. Na końcu wypisuje liczbę sprawdzeń i błędów; przy błędzie kończy się kodem 1.
+Każde zadanie ma wzór, który musi przejść, i typowy błąd, który musi odpaść. Skrypt sprawdza zadania SQL i PHP oraz kwerendy arkuszy (wymaga włączonego MySQL), a potem zadania HTML, CSS i JS w nowej karcie domyślnej przeglądarki, na chwilowym serwerze na porcie 8013. Ręcznie: http://127.0.0.1:8003/testy/test.html. Na końcu wypisuje liczbę sprawdzeń i błędów; przy błędzie kończy się kodem 1.
 
 ## Struktura
 
