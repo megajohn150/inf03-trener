@@ -11,7 +11,7 @@ const TONE = { sql: 'var(--t-blue)', php: 'var(--t-pink)', html: 'var(--t-yellow
 const tematow = n => n === 1 ? 'temat' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'tematy' : 'tematów';
 
 // ---- postęp: plik na dysku, a localStorage jako zapas (Safari potrafi je wyczyścić) ----
-let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {} };
+let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {}, zal: {} };
 async function wczytaj() {
   let lokalny = null, plik = null;
   try { lokalny = JSON.parse(localStorage.getItem('inf03')); } catch {}
@@ -30,7 +30,11 @@ const ZADANIE = {};
 for (const k of KURSY) for (const t of k.tematy) t.zadania.forEach((z, i) => { ZADANIE[z.id] = { z, k, t, n: i + 1 }; });
 const zrobione = t => t.zadania.filter(z => P.sql[z.id] === 1).length;
 const wKursie = k => k.tematy.reduce((s, t) => [s[0] + zrobione(t), s[1] + t.zadania.length], [0, 0]);
-const umie = q => P.abcd[q.id]?.ok === 1;
+// Pytanie jest opanowane po UMIE dobrych odpowiedziach z rzędu; n to bieżąca seria (stary zapis bez n: ok liczy się jako 1).
+const UMIE = 2;
+const seriaDobrych = q => P.abcd[q.id]?.n ?? P.abcd[q.id]?.ok ?? 0;
+const umie = q => seriaDobrych(q) >= UMIE;
+const zapiszOdp = (q, ok, czas) => { P.abcd[q.id] = { ok: +ok, n: ok ? seriaDobrych(q) + 1 : 0, czas }; };
 const kurs = id => KURSY.find(k => k.id === id);
 const DZ = Object.keys(DZIALY).map(d => ({ d, nazwa: DZIALY[d], q: ABCD.filter(q => q.d == d) }));
 
@@ -100,12 +104,14 @@ function start() {
     </div>
     <div class="sheet taped taped--r" style="--tape:var(--t-blue)">
       <h2 class="h2">Teoria</h2>
+      <p class="muted board__note">Pytanie jest opanowane po ${UMIE} dobrych odpowiedziach z rzędu.</p>
       ${DZ.map(({ d, nazwa, q }) => { const u = q.filter(umie).length; return `<a class="prow" href="#/abcd/${d}"><span class="prow__name">${esc(nazwa)}</span><span class="prow__val">${u} z ${q.length}</span>${pasek(u, q.length)}</a>`; }).join('')}
     </div>
     <div class="sheet sheet--kraft">
       <svg class="pin" aria-hidden="true"><use href="#i-pin"/></svg>
       <h2 class="h2">Wyniki</h2>
-      <p class="res">${egz ? `Egzamin ABCD: <strong>${procent(egz.pkt, egz.max)}%</strong> (${data(egz.czas)}), cel 80%` : 'Egzamin ABCD: jeszcze nie rozwiązany'}</p>
+      <p class="res">${egz ? `Egzamin ABCD: <strong>${procent(egz.pkt, egz.max)}%</strong> (${data(egz.czas)}), cel 80%` : 'Egzamin ABCD: jeszcze nie rozwiązany'}
+        ${P.egz.length > 1 ? `<small class="res__hist">Wcześniej: ${P.egz.slice(-5, -1).reverse().map(e => `${procent(e.pkt, e.max)}%`).join(' · ')}</small>` : ''}</p>
       ${ark.map(([id, a]) => `<p class="res">${esc(tytulArk(id))}: <strong>${procent(a.pkt, a.max)}%</strong> (${data(a.czas)}), cel 85%</p>`).join('') || '<p class="res">Arkusz praktyczny: jeszcze nie oceniony</p>'}
     </div>
   </section>`;
@@ -183,15 +189,19 @@ function temat(kId, tId) {
     <div>${nast ? `<a class="btn btn--primary" href="#/kurs/${k.id}/${nast.id}">Następny temat: ${esc(nast.tytul)}</a>` : '<button class="btn btn--primary" data-act="dalej">Dalej</button>'}</div>
   </div>`;
 }
-function powtorka() {
+function powtorka(pomin = []) {
   const pula = [...new Set([...Object.keys(P.sql), ...Object.keys(P.podglad)])].filter(id => ZADANIE[id]);
-  // Najpierw nieudane, potem z podglądem rozwiązania, potem losowe zaliczone.
+  // Najpierw nieudane, potem z podglądem rozwiązania, potem zaliczone najdawniej (bez daty = stary zapis, czyli najdawniej).
   const grupa = id => P.sql[id] === 0 ? 0 : P.podglad[id] ? 1 : 2;
-  const lista = [0, 1, 2].flatMap(g => miesza(pula.filter(id => grupa(id) === g))).slice(0, 5);
+  const kolejka = [0, 1].flatMap(g => miesza(pula.filter(id => grupa(id) === g)))
+    .concat(miesza(pula.filter(id => grupa(id) === 2)).sort((a, b) => (P.zal[a] ?? 0) - (P.zal[b] ?? 0)));
+  // „Inne zadania” pomija te, które były na ekranie; gdy nic nie zostaje, zaczyna od początku kolejki.
+  const reszta = kolejka.filter(id => !pomin.includes(id));
+  const lista = (reszta.length ? reszta : kolejka).slice(0, 5);
   app.innerHTML = lista.length ? `
   <div class="topic">
     <div class="pagehead"><h1 class="title" tabindex="-1">Powtórka</h1></div>
-    <p class="lead">Pięć zadań, które już robiłeś/aś: najpierw te nieudane, potem te z podglądem rozwiązania, na końcu losowe zaliczone.</p>
+    <p class="lead">Pięć zadań, które już robiłeś/aś: najpierw te nieudane, potem te z podglądem rozwiązania, na końcu zaliczone najdawniej.</p>
     ${lista.map((id, i) => zadanieHtml(ZADANIE[id], i)).join('')}
     <div><button class="btn" data-act="inne">Inne zadania</button></div>
   </div>` : `
@@ -222,6 +232,7 @@ async function sprawdz(art) {
     if (o.log?.length) extra.innerHTML += `<figure class="console"><figcaption class="label">Konsola (console.log)</figcaption>${kod(o.log.join('\n'))}</figure>`;
     if (o.ok && !art.querySelector('.task__head .ic')) art.querySelector('.task__head').insertAdjacentHTML('beforeend', `${icon('tick')}<span class="sr">zaliczone</span>`);
     if (P.sql[z.id] !== 1) P.sql[z.id] = o.ok ? 1 : 0; // raz zaliczone zostaje zaliczone
+    if (o.ok) P.zal[z.id] = Date.now(); // ostatnie zaliczenie: powtórka zaczyna od najdawniejszych
     if (o.ok && !art.querySelector('[data-aid="odp"]')) delete P.podglad[z.id];
     odznacz(art);
     P.ost = k.id; zapisz();
@@ -256,8 +267,8 @@ function pomoc(art, rodzaj) {
 let SER = null;
 function abcd(dzial) {
   const pula = miesza(ABCD.filter(q => !dzial || q.d == dzial));
-  // Najpierw błędy, potem nowe, na końcu najdawniej widziane.
-  const waga = q => !P.abcd[q.id] ? 1 : P.abcd[q.id].ok ? P.abcd[q.id].czas : 0;
+  // Najpierw błędy, potem raz trafione (do utrwalenia), potem nowe, na końcu opanowane, najdawniej widziane jako pierwsze.
+  const waga = q => { const a = P.abcd[q.id]; return !a ? 2 : !a.ok ? 0 : !umie(q) ? 1 : 3 + a.czas; };
   const seria = pula.sort((a, b) => waga(a) - waga(b)).slice(0, 10);
   SER = { dzial, seria: seria.map(q => ({ q, o: miesza(q.o) })), i: 0, pkt: 0, gotowe: false };
   pytanie();
@@ -282,7 +293,7 @@ function odpowiedz(n) {
   SER.gotowe = true;
   const { q, o } = SER.seria[SER.i], ok = o[n] === q.o[0];
   SER.pkt += ok;
-  P.abcd[q.id] = { ok: +ok, czas: Date.now() }; P.ost = 'abcd'; zapisz();
+  zapiszOdp(q, ok, Date.now()); P.ost = 'abcd'; zapisz();
   app.querySelectorAll('.answer').forEach((b, m) => {
     b.disabled = true;
     const znak = b.querySelector('.answer__mark');
@@ -291,7 +302,7 @@ function odpowiedz(n) {
     else if (m === n) { b.classList.add('is-wrong'); znak.innerHTML = `${icon('cross')}<span class="sr">Twoja odpowiedź, błędna</span>`; }
   });
   const fb = app.querySelector('.feedback');
-  fb.innerHTML = `<div class="note note--${ok ? 'sage' : 'pink'} pop"><p class="verdict">${icon(ok ? 'tick' : 'cross')} ${ok ? 'Dobrze' : `Poprawna: ${esc(q.o[0])}`}</p><p>${esc(q.w)}</p></div>
+  fb.innerHTML = `<div class="note note--${ok ? 'sage' : 'pink'} pop"><p class="verdict">${icon(ok ? 'tick' : 'cross')} ${ok ? (seriaDobrych(q) === UMIE ? 'Dobrze, opanowane' : 'Dobrze') : `Poprawna: ${esc(q.o[0])}`}</p><p>${esc(q.w)}</p></div>
     <button class="btn btn--primary" data-act="nastepne-pytanie">Dalej</button>`;
   fb.querySelector('button').focus();
 }
@@ -369,10 +380,15 @@ function egzaminKoniec() {
   const odp = new FormData(document.getElementById('test')), czas = Date.now(), pytania = EGZ.pytania;
   const zle = pytania.filter(({ q, o }) => {
     const ok = odp.has(q.id) && o[odp.get(q.id)] === q.o[0];
-    P.abcd[q.id] = { ok: +ok, czas };
+    zapiszOdp(q, ok, czas);
     return !ok;
   });
   const pkt = pytania.length - zle.length;
+  // Wynik w każdym dziale, od najsłabszego.
+  const dzialy = Object.keys(DZIALY).map(d => {
+    const p = pytania.filter(x => x.q.d == d);
+    return { d, n: p.length, ok: p.filter(x => !zle.includes(x)).length };
+  }).filter(x => x.n).sort((a, b) => a.ok / a.n - b.ok / b.n);
   delete P.egzTrwa;
   P.egz.push({ czas, pkt, max: pytania.length }); zapisz();
   app.innerHTML = `
@@ -381,6 +397,10 @@ function egzaminKoniec() {
       <h1 class="title" tabindex="-1">${pkt * 2 >= pytania.length ? 'Zdane!' : 'Jeszcze nie tym razem.'}</h1>
       <p class="score">${pkt} z ${pytania.length} (${procent(pkt, pytania.length)}%)</p>
       <a class="btn btn--primary" href="#/">Na start</a>
+    </div>
+    <div class="sheet">
+      <h2 class="h2">Według działów</h2>
+      ${dzialy.map(x => `<a class="prow" href="#/abcd/${x.d}"><span class="prow__name">${esc(DZIALY[x.d])}</span><span class="prow__val">${x.ok} z ${x.n} · ćwicz ten dział ${icon('chev')}</span>${pasek(x.ok, x.n)}</a>`).join('')}
     </div>
     ${zle.length ? `<h2 class="h2">Błędne odpowiedzi</h2><div class="wrongs">${zle.map(({ q, o }) => `
       <div class="sheet"><p><strong>${esc(q.p)}</strong></p>${q.kod ? kod(q.kod) : ''}
@@ -611,7 +631,7 @@ app.addEventListener('click', e => {
     if (ta.value !== start && !confirm('Usunąć Twój kod i wrócić do kodu startowego?')) return;
     ta.value = start; rosnij(ta); delete P.szkic[z.id]; zapisz();
   }
-  else if (akcja === 'inne') { powtorka(); rosnijWszystkie(); fokus(); }
+  else if (akcja === 'inne') { powtorka([...app.querySelectorAll('.task')].map(a => a.dataset.id)); rosnijWszystkie(); fokus(); }
   else if (akcja === 'odpowiedz') odpowiedz(+b.dataset.n);
   else if (akcja === 'nastepne-pytanie') nastepnePytanie();
   else if (akcja === 'seria') { abcd(SER.dzial); fokus(); }

@@ -402,6 +402,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .res { margin: 0; padding: 12px 0; border-bottom: 1px dashed rgba(91, 86, 76, .35); }
 .res:last-child { border-bottom: 0; }
 .res strong { font: 700 1.45rem/1 var(--f-hand); }
+.res__hist { display: block; margin-top: 4px; color: var(--ink-2); font-size: .9rem; }
+.board__note { margin: -.3em 0 .4em; font-size: .9rem; }
 
 /* ---------- notebook lists (courses, topics, sessions) ---------- */
 .notebook { padding: 10px 0; }
