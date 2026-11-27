@@ -694,9 +694,10 @@ app.addEventListener('click', e => {
   else if (akcja === 'uruchom') uruchomSql(b.closest('.dbview'));
   else if (akcja === 'grafika') sprawdzGrafike();
   else if (akcja === 'data-egz') {
-    // Pole daty pojawia się dopiero po kliknięciu liczby; po wyborze daty strona startowa rysuje się od nowa i znów je chowa.
+    // Kliknięcie liczby pokazuje albo chowa pole daty; po wyborze daty strona startowa rysuje się od nowa i też je chowa.
     const pole = app.querySelector('.countdown__data');
-    pole.hidden = false;
+    pole.hidden = !pole.hidden;
+    if (pole.hidden) return;
     const wybor = pole.querySelector('input');
     wybor.focus();
     try { wybor.showPicker(); } catch {}
