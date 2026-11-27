@@ -8,7 +8,8 @@ const data = ms => new Date(ms).toLocaleDateString('pl-PL');
 const BLAD_POL = 'Brak połączenia z aplikacją. Uruchom start.command.';
 const icon = id => `<svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg>`;
 const TONE = { sql: 'var(--t-blue)', php: 'var(--t-pink)', html: 'var(--t-yellow)', css: 'var(--t-sage)', js: 'var(--t-kraft)' };
-const tematow = n => n === 1 ? 'temat' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'tematy' : 'tematów';
+const odmiana = (n, jeden, kilka, wiele) => n === 1 ? jeden : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? kilka : wiele;
+const tematow = n => odmiana(n, 'temat', 'tematy', 'tematów');
 
 // ---- postęp: plik na dysku, a localStorage jako zapas (Safari potrafi je wyczyścić) ----
 const PUSTY = () => ({ czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {}, zal: {}, egzData: '2027-06-01' });
@@ -299,7 +300,15 @@ function pomoc(art, rodzaj) {
     : `<div class="solution" data-aid="odp"><p class="label">Rozwiązanie wzorcowe</p>${kod(z.wzor)}</div>`);
 }
 
-// ---- teoria: seria 10 pytań ----
+// ---- teoria: lista działów (jak kursy w Praktyce), potem seria 10 pytań ----
+function teoria() {
+  app.innerHTML = `
+  <div class="pagehead"><h1 class="title" tabindex="-1">Teoria</h1><p class="muted">Serie po 10 pytań: najpierw Twoje błędy, potem nowe. Pytanie jest opanowane po ${UMIE} dobrych odpowiedziach z rzędu.</p></div>
+  <div class="actions series-all"><a class="btn btn--primary" href="#/abcd/wszystkie">Seria ze wszystkich działów</a></div>
+  <div class="sheet notebook">
+    ${DZ.map(({ d, nazwa, q }, i) => { const u = q.filter(umie).length; return `<a class="nrow" href="#/abcd/${d}"><span class="nrow__num">${i + 1}</span><span class="nrow__name">${esc(nazwa)}<small>${q.length} ${odmiana(q.length, 'pytanie', 'pytania', 'pytań')}</small></span>${pasek(u, q.length)}<span class="nrow__val">${u === q.length ? `${icon('tick')}<span class="sr">${u} z ${q.length}</span>` : `${u} z ${q.length}`}</span></a>`; }).join('')}
+  </div>`;
+}
 let SER = null;
 function abcd(dzial) {
   const pula = miesza(ABCD.filter(q => !dzial || q.d == dzial));
@@ -730,7 +739,7 @@ addEventListener('keydown', e => {
 const TRASY = [
   [/^\/?$/, start], [/^\/kurs$/, kursy], [/^\/kurs\/([\w-]+)$/, kursLista], [/^\/kurs\/([\w-]+)\/([\w-]+)$/, temat],
   [/^\/sql$/, () => kursLista('sql')], [/^\/sql\/([\w-]+)$/, id => temat('sql', id)],
-  [/^\/powtorka$/, powtorka], [/^\/abcd(?:\/(\d+))?$/, abcd], [/^\/egzamin$/, egzamin], [/^\/arkusze$/, arkusze],
+  [/^\/powtorka$/, powtorka], [/^\/abcd$/, teoria], [/^\/abcd\/(\d+|wszystkie)$/, d => abcd(d === 'wszystkie' ? undefined : d)], [/^\/egzamin$/, egzamin], [/^\/arkusze$/, arkusze],
   [/^\/arkusz\/([\w-]+)$/, arkusz], [/^\/sesja\/([\w-]+)$/, sesja], [/^\/poradniki(?:\/([\w-]+))?$/, poradniki],
 ];
 const SEKCJA = { kurs: 'kurs', sql: 'kurs', powtorka: 'kurs', abcd: 'abcd', egzamin: 'egzamin', arkusze: 'arkusze', arkusz: 'arkusze', sesja: 'arkusze', poradniki: 'poradniki' };

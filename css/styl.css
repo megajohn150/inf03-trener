@@ -428,6 +428,7 @@ a.nrow:hover .nrow__name { text-decoration: underline; text-decoration-color: va
 .pagehead { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; margin-bottom: 28px; }
 .pagehead .title { margin-bottom: 0; }
 .pagehead p { margin: 0; }
+.series-all { margin-bottom: 28px; }
 
 /* ---------- topic & tasks ---------- */
 .topic, .series { margin-inline: auto; }
