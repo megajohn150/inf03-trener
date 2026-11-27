@@ -46,7 +46,7 @@ wykonują, a wynik jest porównywany z wynikiem wzorcowego rozwiązania.
 | **Poradniki** | egzamin krok po kroku, GIMP z 5 ćwiczeniami sprawdzanymi automatycznie, phpMyAdmin i zrzuty ekranu, ściąga ze wzorcami skryptów |
 | **Powtórka** | wraca do zrobionych zadań, zaczynając od tych, które nie wyszły |
 
-Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamięci przeglądarki.
+Postęp zapisuje się w `dane/postep.json`, a gdy serwer nie odpowiada, w pamięci przeglądarki. Na stronie startowej ustawisz datę egzaminu, pobierzesz kopię postępu, wczytasz ją albo zaczniesz od nowa.
 
 <table>
   <tr>
@@ -92,15 +92,11 @@ Rozwiązania arkuszy próbnych zapisuj w `praca/probny1/` … `praca/probny4/`, 
 
 ## Testy
 
-<img src="https://img.shields.io/badge/sprawdze%C5%84-394-5FA04E?style=flat-square" alt="Sprawdzeń: 394"> <img src="https://img.shields.io/badge/b%C5%82%C4%99d%C3%B3w-0-555555?style=flat-square" alt="Błędów: 0">
-
 ```bash
 ./testy/test.sh
 ```
 
-Sprawdza zadania SQL i PHP oraz kwerendy arkuszy: wzór ma przejść, a błędne odpowiedzi mają nie przejść. Wymaga włączonego MySQL.
-
-Testy HTML, CSS i JS uruchamiają się w przeglądarce pod adresem http://127.0.0.1:8003/testy/test.html, przy włączonym serwerze.
+Każde zadanie ma wzór, który musi przejść, i typowy błąd, który musi odpaść. Skrypt sprawdza zadania SQL i PHP oraz kwerendy arkuszy (wymaga włączonego MySQL), a potem zadania HTML, CSS i JS w Google Chrome uruchomionym bez okna, na chwilowym serwerze na porcie 8013. Bez Chrome te ostatnie otwórz ręcznie: http://127.0.0.1:8003/testy/test.html. Na końcu wypisuje liczbę sprawdzeń i błędów; przy błędzie kończy się kodem 1.
 
 ## Struktura
 
@@ -108,6 +104,7 @@ Testy HTML, CSS i JS uruchamiają się w przeglądarce pod adresem http://127.0.
 index.html          strona (punkt wejścia)
 favicon.png         ikona strony
 start.command       uruchomienie serwera dwuklikiem
+router.php          wpuszcza tylko żądania z tego komputera (nagłówek Host)
 api.php             serwer: postęp, pliki arkuszy, wywołania sprawdzarki
 sprawdz.php         sprawdzanie SQL i PHP (piaskownica)
 js/app.js           widoki, nawigacja i postęp
@@ -129,7 +126,7 @@ zrzuty/             zrzuty ekranu do tego pliku
 
 Aplikacja uruchamia wpisany przez Ciebie kod PHP, dlatego:
 
-- **Dostęp tylko z Twojego komputera.** Serwer słucha tylko na `127.0.0.1:8003` i sprawdza nagłówek `Host`. Każde żądanie POST wymaga nagłówka `X-INF03`, którego obce strony otwarte w przeglądarce nie mogą wysłać.
+- **Dostęp tylko z Twojego komputera.** Serwer słucha tylko na `127.0.0.1:8003` i przy każdym żądaniu (także plików i Twoich stron z `praca/`) sprawdza nagłówek `Host` (`router.php`). Każde żądanie POST wymaga nagłówka `X-INF03`, którego obce strony otwarte w przeglądarce nie mogą wysłać.
 - **Ograniczony proces PHP.** Kod działa w osobnym procesie, w tymczasowym folderze (`open_basedir`), bez poleceń systemowych, z limitem 64 MB pamięci i 5 sekund czasu. Po sprawdzeniu folder jest usuwany.
 - **Osobna baza.** Zadania łączą się jako użytkownik `inf03cwiczenia`, który ma dostęp tylko do bazy `inf03cwiczenia`. Baza jest odtwarzana przed każdym sprawdzeniem. Kod logujący się jako `root` jest odrzucany.
 

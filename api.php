@@ -1,7 +1,8 @@
 <?php
-// Host chroni przed DNS rebinding, własny nagłówek przed POST z obcych stron.
+// Host chroni przed DNS rebinding (router.php sprawdza to samo dla całej strony), własny nagłówek przed POST z obcych stron.
 $post = $_SERVER['REQUEST_METHOD'] === 'POST';
-if (!in_array($_SERVER['HTTP_HOST'] ?? '', ['127.0.0.1:8003', 'localhost:8003'], true)
+$port = $_SERVER['SERVER_PORT'];
+if (!in_array($_SERVER['HTTP_HOST'] ?? '', ["127.0.0.1:$port", "localhost:$port"], true)
     || ($post && ($_SERVER['HTTP_X_INF03'] ?? '') !== '1')) { http_response_code(403); exit; }
 
 require __DIR__ . '/sprawdz.php';

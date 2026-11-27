@@ -384,6 +384,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .ring { position: relative; display: inline-block; padding: 0 .45em; margin: 0 .05em; }
 .ring strong { font: 700 clamp(3.4rem, 7vw, 5.2rem)/1 var(--f-hand); letter-spacing: -.02em; }
 .ring svg { max-width: none; position: absolute; left: -12%; top: -14%; width: 124%; height: 128%; color: var(--pen-red); pointer-events: none; overflow: visible; }
+.countdown__data { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; color: var(--ink-2); }
+.countdown__data input { font: 500 .95rem var(--f-ui); color: var(--ink); background: #fffefb; border: 1.5px solid var(--rule); border-radius: 6px; padding: 4px 8px; }
+.tools { display: flex; flex-wrap: wrap; gap: 0 4px; margin-top: 14px; }
+.tools .btn { min-height: 40px; padding: 6px 8px; font-size: .9rem; }
 .notes { display: flex; flex-direction: column; padding-top: 6px; }
 .notes .note { width: min(100%, 260px); min-height: 128px; }
 .notes .note + .note { margin-top: -20px; }

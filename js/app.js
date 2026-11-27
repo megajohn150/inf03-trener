@@ -11,17 +11,44 @@ const TONE = { sql: 'var(--t-blue)', php: 'var(--t-pink)', html: 'var(--t-yellow
 const tematow = n => n === 1 ? 'temat' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'tematy' : 'tematów';
 
 // ---- postęp: plik na dysku, a localStorage jako zapas (Safari potrafi je wyczyścić) ----
-let P = { czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {}, zal: {} };
+const PUSTY = () => ({ czas: 0, abcd: {}, sql: {}, egz: [], ark: {}, szkic: {}, podglad: {}, zal: {}, egzData: '2027-06-01' });
+let P = PUSTY();
 async function wczytaj() {
   let lokalny = null, plik = null;
   try { lokalny = JSON.parse(localStorage.getItem('inf03')); } catch {}
   try { plik = await (await fetch('api.php?co=postep')).json(); } catch {}
   for (const x of [lokalny, plik]) if (x && x.czas > P.czas) P = { ...P, ...x };
 }
-async function zapisz() {
+// Zapisy idą po kolei z kopią stanu: odpowiedź na starszy zapis nie nadpisze nowszego na dysku.
+let zapisy = Promise.resolve();
+function zapisz() {
   P.czas = Date.now();
   try { localStorage.setItem('inf03', JSON.stringify(P)); } catch {}
-  try { await api('postep', P); uwaga(''); } catch { uwaga('Postęp jest zapisany tylko w przeglądarce. Uruchom start.command, żeby zapisywał się też na dysku.'); }
+  const kopia = structuredClone(P);
+  return zapisy = zapisy.then(() => api('postep', kopia)).then(() => uwaga(''),
+    () => uwaga('Postęp jest zapisany tylko w przeglądarce. Uruchom start.command, żeby zapisywał się też na dysku.'));
+}
+function eksportuj() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 1)], { type: 'application/json' }));
+  a.download = `inf03-postep-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+async function importuj(plik) {
+  let x;
+  try { x = JSON.parse(await plik.text()); } catch { x = null; }
+  // Plik z zewnątrz: przyjmujemy tylko obiekt o kształcie postępu.
+  if (!x || typeof x !== 'object' || Array.isArray(x) || typeof x.sql !== 'object' || typeof x.abcd !== 'object' || !Array.isArray(x.egz ?? []))
+    return alert('To nie jest plik postępu z trenera INF.03.');
+  if (!confirm('Wczytać postęp z pliku? Obecny postęp zostanie zastąpiony.')) return;
+  P = { ...PUSTY(), ...x };
+  await zapisz(); trasa();
+}
+async function resetuj() {
+  if (!confirm('Usunąć cały postęp: zadania, teorię, egzaminy, arkusze i szkice? Tego nie da się cofnąć, chyba że masz kopię.')) return;
+  P = { ...PUSTY(), egzData: P.egzData };
+  await zapisz(); trasa();
 }
 function uwaga(t) { const u = document.getElementById('sysmsg'); u.querySelector('span').textContent = t; u.hidden = !t; }
 
@@ -66,7 +93,9 @@ const hms = s => `${s / 3600 | 0}:${String((s / 60 | 0) % 60).padStart(2, '0')}:
 
 // ---- start ----
 function start() {
-  const tyg = Math.max(0, Math.ceil((new Date(2027, 5, 1) - Date.now()) / 6048e5));
+  // Ostatnie 4 tygodnie liczone w dniach.
+  const dni = Math.max(0, Math.ceil((new Date(P.egzData + 'T00:00') - Date.now()) / 864e5));
+  const [ile, jedn] = dni < 28 ? [dni, dni === 1 ? 'dzień' : 'dni'] : [Math.ceil(dni / 7), 'tyg.'];
   const n = nastepne();
   const nieudane = Object.keys(P.sql).filter(id => P.sql[id] === 0 && ZADANIE[id]).map(id => ZADANIE[id]);
   const zleQ = ABCD.filter(q => P.abcd[q.id] && !P.abcd[q.id].ok).length;
@@ -91,7 +120,8 @@ function start() {
       <p class="upnext">Następna porcja: <strong>${esc(n.label)}</strong></p>
     </div>
     <aside class="today__side" aria-label="Twój stan">
-      <p class="countdown">do czerwca 2027: <span class="ring"><strong>${tyg}</strong><svg aria-hidden="true"><use href="#i-ring"/></svg></span> tyg.</p>
+      <p class="countdown">do egzaminu: <span class="ring"><strong>${ile}</strong><svg aria-hidden="true"><use href="#i-ring"/></svg></span> ${jedn}</p>
+      <label class="countdown__data">Data egzaminu <input type="date" id="egzData" value="${esc(P.egzData)}"></label>
       <div class="notes">${kartki.join('') || '<div class="note">Tu przyklejają się Twoje błędy. Wracają jako pierwsze.</div>'}</div>
     </aside>
   </section>
@@ -113,6 +143,12 @@ function start() {
       <p class="res">${egz ? `Egzamin ABCD: <strong>${procent(egz.pkt, egz.max)}%</strong> (${data(egz.czas)}), cel 80%` : 'Egzamin ABCD: jeszcze nie rozwiązany'}
         ${P.egz.length > 1 ? `<small class="res__hist">Wcześniej: ${P.egz.slice(-5, -1).reverse().map(e => `${procent(e.pkt, e.max)}%`).join(' · ')}</small>` : ''}</p>
       ${ark.map(([id, a]) => `<p class="res">${esc(tytulArk(id))}: <strong>${procent(a.pkt, a.max)}%</strong> (${data(a.czas)}), cel 85%</p>`).join('') || '<p class="res">Arkusz praktyczny: jeszcze nie oceniony</p>'}
+      <div class="tools">
+        <button class="btn btn--quiet" data-act="eksport">Pobierz kopię postępu</button>
+        <button class="btn btn--quiet" data-act="import">Wczytaj kopię</button>
+        <button class="btn btn--quiet" data-act="reset-postep">Zacznij od nowa</button>
+        <input type="file" id="importPlik" accept=".json,application/json" hidden>
+      </div>
     </div>
   </section>`;
 }
@@ -646,6 +682,9 @@ app.addEventListener('click', e => {
   else if (akcja === 'pod' || akcja === 'odp') pomoc(art, akcja);
   else if (akcja === 'uruchom') uruchomSql(b.closest('.dbview'));
   else if (akcja === 'grafika') sprawdzGrafike();
+  else if (akcja === 'eksport') eksportuj();
+  else if (akcja === 'import') app.querySelector('#importPlik').click();
+  else if (akcja === 'reset-postep') resetuj();
   else if (akcja === 'tabela') { const box = b.closest('.dbview'); box.querySelector('.konsola').value = 'SELECT * FROM ' + b.dataset.t; uruchomSql(box); }
   else if (akcja === 'reset-kod') {
     const ta = art.querySelector('textarea'), z = ZADANIE[art.dataset.id].z, start = z.start ?? '';
@@ -659,6 +698,10 @@ app.addEventListener('click', e => {
   else if (akcja === 'egzamin-start') egzaminStart();
   else if (akcja === 'ocen') ocenArkusz(ARKUSZE.find(x => x.id === b.dataset.id), app.querySelector('.gradeout'));
   else if (akcja === 'zegar-start' || akcja === 'zegar-od-nowa') zegarStart(b.closest('[data-timer]'), akcja === 'zegar-od-nowa');
+});
+app.addEventListener('change', e => {
+  if (e.target.id === 'importPlik' && e.target.files[0]) importuj(e.target.files[0]);
+  else if (e.target.id === 'egzData' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { P.egzData = e.target.value; zapisz(); start(); }
 });
 // Szkic kodu trafia do P od razu, a na dysk z opóźnieniem, żeby nie zapisywać przy każdym znaku.
 let szkicZapis;
