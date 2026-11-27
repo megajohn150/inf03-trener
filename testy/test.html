@@ -16,5 +16,7 @@
     }
   document.getElementById('stan').textContent = `Sprawdzeń: ${n}, błędów: ${zle}`;
   document.title = zle ? 'BŁĘDY' : 'OK';
+  // test.sh (?auto) czyta wynik z dziennika serwera: to żądanie trafia tam razem z adresem.
+  if (location.search.includes('auto')) fetch('koniec?' + encodeURIComponent(`Sprawdzeń: ${n}, błędów: ${zle}\n${log.textContent}`.slice(0, 1500)));
 })();
 </script></body></html>
