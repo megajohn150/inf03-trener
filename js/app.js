@@ -70,7 +70,7 @@ const DZ = Object.keys(DZIALY).map(d => ({ d, nazwa: DZIALY[d], q: ABCD.filter(q
 function nastepne() {
   const grupy = [['abcd'], ['sql', 'php', 'js'], ['html', 'css']];
   const cel = g => {
-    if (g[0] === 'abcd') return ABCD.some(q => !umie(q)) ? { href: '#/abcd', label: 'Teoria · seria 10 pytań' } : null;
+    if (g[0] === 'abcd') return ABCD.some(q => !umie(q)) ? { href: '#/abcd/wszystkie', label: 'Teoria · seria 10 pytań' } : null;
     for (const id of g) { const k = kurs(id), t = k.tematy.find(t => zrobione(t) < t.zadania.length); if (t) return { href: `#/kurs/${id}/${t.id}`, label: `${k.nazwa} · ${t.tytul}` }; }
     return null;
   };
@@ -103,7 +103,7 @@ function start() {
   const kartki = [
     P.egzTrwa ? `<a class="note note--kraft" href="#/egzamin">Egzamin ABCD w toku. Zegar biegnie dalej, dokończ go.</a>` : '',
     ...nieudane.slice(0, 2).map(x => `<a class="note note--pink" href="#/powtorka">${esc(x.k.nazwa)} · zadanie ${x.n}<br><span class="note__sub">${esc(x.t.tytul)}</span></a>`),
-    zleQ ? `<a class="note note--blue" href="#/abcd">Teoria: pytania z błędem: ${zleQ}. Wrócą w następnej serii.</a>` : '',
+    zleQ ? `<a class="note note--blue" href="#/abcd/wszystkie">Teoria: pytania z błędem: ${zleQ}. Wrócą w następnej serii.</a>` : '',
   ].filter(Boolean);
   if (nieudane.length > 2) kartki.push(`<a class="note" href="#/powtorka">i jeszcze ${nieudane.length - 2} w powtórce</a>`);
   const egz = P.egz.at(-1), ark = Object.entries(P.ark).filter(([, a]) => a.max);
@@ -323,6 +323,7 @@ function pytanie() {
   SER.gotowe = false;
   app.innerHTML = `
   <div class="series">
+    ${wstecz('#/abcd', 'Teoria')}
     <div class="qmeta"><span>Pytanie ${SER.i + 1} z ${ile} · ${esc(DZIALY[q.d])} · klawisze 1–4</span>
       <span class="pips" aria-hidden="true">${SER.seria.map((_, n) => `<i class="${n < SER.i ? 'is-done' : n === SER.i ? 'is-now' : ''}"></i>`).join('')}</span></div>
     <div class="sheet taped" style="--tape:var(--t-blue)">
