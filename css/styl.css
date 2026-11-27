@@ -455,6 +455,8 @@ a.nrow:hover .nrow__name { text-decoration: underline; text-decoration-color: va
 .cmp figure { margin: 0; }
 .cmp figcaption { margin-bottom: 6px; }
 .cmp pre { margin: 0; min-height: 3em; }
+.console { margin: 0; }
+.console pre { margin: 6px 0 0; max-height: 16em; overflow: auto; }
 
 .rtable { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 4px; background: #fffefb; }
 .rtable table { border-collapse: collapse; font-size: .92rem; min-width: 100%; }

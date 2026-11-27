@@ -200,6 +200,7 @@ async function sprawdz(art) {
     wynik.innerHTML = `${icon(o.ok ? 'tick' : 'cross')}<span>${o.ok ? 'Dobrze!' : esc(o.powod)}</span>`;
     if (o.kolumny?.length) extra.innerHTML = `<div class="rtable"><table><thead><tr>${o.kolumny.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${o.wiersze.map(w => `<tr>${w.map(v => v === null ? '<td class="null">NULL</td>' : `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     if (o.wyjscie !== undefined && !o.ok) extra.innerHTML += `${o.dane ? `<p class="test-data">Dane testu: <code>${esc(o.dane)}</code></p>` : ''}<div class="cmp"><figure><figcaption class="label">Twój wynik</figcaption>${kod(o.wyjscie || '(pusto)')}</figure><figure><figcaption class="label">Oczekiwany</figcaption>${kod(o.oczekiwane || '(pusto)')}</figure></div>`;
+    if (o.log?.length) extra.innerHTML += `<figure class="console"><figcaption class="label">Konsola (console.log)</figcaption>${kod(o.log.join('\n'))}</figure>`;
     if (o.ok && !art.querySelector('.task__head .ic')) art.querySelector('.task__head').insertAdjacentHTML('beforeend', `${icon('tick')}<span class="sr">zaliczone</span>`);
     if (P.sql[z.id] !== 1) P.sql[z.id] = o.ok ? 1 : 0; // raz zaliczone zostaje zaliczone
     P.ost = k.id; zapisz();
@@ -572,9 +573,9 @@ app.addEventListener('click', e => {
   else if (akcja === 'reset-kod') {
     const ta = art.querySelector('textarea'), z = ZADANIE[art.dataset.id].z, start = z.start ?? '';
     if (ta.value !== start && !confirm('Usunąć Twój kod i wrócić do kodu startowego?')) return;
-    ta.value = start; delete P.szkic[z.id]; zapisz();
+    ta.value = start; rosnij(ta); delete P.szkic[z.id]; zapisz();
   }
-  else if (akcja === 'inne') { powtorka(); fokus(); }
+  else if (akcja === 'inne') { powtorka(); rosnijWszystkie(); fokus(); }
   else if (akcja === 'odpowiedz') odpowiedz(+b.dataset.n);
   else if (akcja === 'nastepne-pytanie') nastepnePytanie();
   else if (akcja === 'seria') { abcd(SER.dzial); fokus(); }
@@ -584,8 +585,12 @@ app.addEventListener('click', e => {
 });
 // Szkic kodu trafia do P od razu, a na dysk z opóźnieniem, żeby nie zapisywać przy każdym znaku.
 let szkicZapis;
+// Pole rośnie z kodem; atrybut rows zostaje minimalną wysokością. +3 to obramowanie (border-box).
+const rosnij = ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 3 + 'px'; };
+const rosnijWszystkie = () => app.querySelectorAll('.code-input').forEach(rosnij);
 app.addEventListener('input', e => {
   if (!e.target.matches('.code-input')) return;
+  rosnij(e.target);
   const z = ZADANIE[e.target.closest('.task').dataset.id].z;
   if (e.target.value === (z.start ?? '')) delete P.szkic[z.id]; else P.szkic[z.id] = e.target.value;
   clearTimeout(szkicZapis); szkicZapis = setTimeout(zapisz, 600);
@@ -616,6 +621,7 @@ function trasa() {
   const sciezka = location.hash.replace(/^#/, '') || '/';
   const hit = TRASY.find(([re]) => re.test(sciezka));
   if (hit) hit[1](...sciezka.match(hit[0]).slice(1)); else start();
+  rosnijWszystkie();
   const sek = SEKCJA[sciezka.split('/')[1]];
   document.querySelectorAll('.tabs a').forEach(a => a.dataset.sec === sek ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
   scrollTo(0, 0);

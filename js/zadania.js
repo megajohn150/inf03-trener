@@ -75,20 +75,23 @@ function wynikiJs(z, kod) {
     addEventListener('message', on);
     const S = 'script';
     f.sandbox = 'allow-scripts'; f.className = 'ukryta'; f.title = 'Test';
-    f.srcdoc = `<!DOCTYPE html><meta charset="utf-8"><body>${z.html || ''}<${S}>var __b = null; addEventListener('error', e => { __b = __b || e.message; });</${S}>
+    // console.* trafia do __log (najwyżej 100 linii, żeby pętla nie zalała strony) i wraca razem z wynikami.
+    f.srcdoc = `<!DOCTYPE html><meta charset="utf-8"><body>${z.html || ''}<${S}>var __b = null, __log = []; addEventListener('error', e => { __b = __b || e.message; });
+const __napis = x => { if (typeof x === 'string') return x; try { return JSON.stringify(x) ?? String(x); } catch { return String(x); } };
+['log', 'info', 'warn', 'error'].forEach(m => { console[m] = (...a) => { if (__log.length < 100) __log.push(a.map(__napis).join(' ')); }; });</${S}>
 <${S}>${kod.replace(/<\/script/gi, '<\\/script')}\n</${S}>
 <${S}>{ const w = __b ? [] : ${JSON.stringify(z.wyr).replace(/</g, '\\u003c')}.map(x => { try { const v = (0, eval)(x); return JSON.stringify(v) ?? String(v); } catch (e) { return 'błąd: ' + e.message; } });
-parent.postMessage(__b ? { blad: __b } : { w }, '*'); }</${S}>`;
+parent.postMessage(__b ? { blad: __b, log: __log } : { w, log: __log }, '*'); }</${S}>`;
     document.body.append(f);
   });
 }
 async function ocenJs(z, kod) {
-  const a = await wynikiJs(z, kod), b = await wynikiJs(z, z.wzor);
-  if (a.blad) return { ok: false, powod: 'Błąd: ' + a.blad };
+  const a = await wynikiJs(z, kod), b = await wynikiJs(z, z.wzor), log = a.log;
+  if (a.blad) return { ok: false, powod: 'Błąd: ' + a.blad, log };
   const i = b.w.findIndex((x, n) => x !== a.w[n]);
-  if (i >= 0) return { ok: false, powod: `Test ${z.opisy?.[i] ?? z.wyr[i]}: wyszło ${a.w[i]}, a powinno być ${b.w[i]}.` };
-  if (z.musi && !new RegExp(z.musi, 'i').test(kod)) return { ok: false, powod: z.musiOpis };
-  return { ok: true };
+  if (i >= 0) return { ok: false, powod: `Test ${z.opisy?.[i] ?? z.wyr[i]}: wyszło ${a.w[i]}, a powinno być ${b.w[i]}.`, log };
+  if (z.musi && !new RegExp(z.musi, 'i').test(kod)) return { ok: false, powod: z.musiOpis, log };
+  return { ok: true, log };
 }
 
 // zamien: pierwsza liczba to wartość startowa zmiennej; podmieniamy ją, żeby sprawdzić wszystkie gałęzie warunku.
